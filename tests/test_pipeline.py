@@ -110,6 +110,20 @@ def test_lost_protected_block_fails_chapter(math_epub, tmp_path):
     assert "quick brown fox" in chapters[0].html
 
 
+def test_nav_document_never_rewritten(tmp_path):
+    from test_epub import _nav_book
+
+    path = _nav_book(tmp_path)
+    rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
+    results = pipeline.optimise(
+        path, tmp_path / "out.epub", rewrite, tmp_path / "work", min_words=0
+    )
+    by_href = {}
+    for r in results:
+        by_href[r.item_id] = r.status
+    assert by_href["nav"] == "skipped"
+
+
 def test_output_retitled_and_cover_badged(sample_epub, tmp_path):
     rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
     out, _, _ = optimise(sample_epub, tmp_path, rewrite)

@@ -55,7 +55,7 @@ def optimise(
         source_file = workdir / f"{chapter.index:03d}.src.md"
         output_file = workdir / f"{chapter.index:03d}.md"
 
-        if chapter.words < min_words or chapter.index in (skip or set()):
+        if chapter.is_nav or chapter.words < min_words or chapter.index in (skip or set()):
             result = Result(
                 chapter.index, chapter.item_id, chapter.title,
                 "skipped", chapter.words, chapter.words,

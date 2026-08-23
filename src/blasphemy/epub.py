@@ -15,6 +15,7 @@ class Chapter:
     title: str
     html: str
     words: int
+    is_nav: bool = False
 
 
 def load(path: str | Path) -> epub.EpubBook:
@@ -48,7 +49,12 @@ def chapters(book: epub.EpubBook) -> list[Chapter]:
         heading = soup.find(["h1", "h2", "h3"])
         title = heading.get_text(strip=True) if heading else ""
         words = len(soup.get_text().split())
-        result.append(Chapter(index, item_id, item.get_name(), title, html, words))
+        result.append(
+            Chapter(
+                index, item_id, item.get_name(), title, html, words,
+                is_nav=isinstance(item, epub.EpubNav),
+            )
+        )
     return result
 
 
@@ -93,7 +99,7 @@ def cover_image(book: epub.EpubBook):
             if item is not None:
                 return item
     for item in book.get_items_of_type(ITEM_IMAGE):
-        if "cover" in item.get_name().lower():
+        if "cover" in item.get_name().lower() or "cover" in item.get_id().lower():
             return item
     return None
 
@@ -106,7 +112,13 @@ class _RawHtml(epub.EpubHtml):
 
 
 def save(book: epub.EpubBook, path: str | Path) -> None:
+    # a nav doc without content (freshly built book) still needs generating
     for item in book.get_items_of_type(ITEM_DOCUMENT):
-        if type(item) is epub.EpubHtml:
+        if isinstance(item, epub.EpubNav):
+            if item.content:
+                if "nav" not in item.properties:
+                    item.properties.append("nav")
+                item.__class__ = _RawHtml
+        elif type(item) is epub.EpubHtml:
             item.__class__ = _RawHtml
     epub.write_epub(str(path), book)
