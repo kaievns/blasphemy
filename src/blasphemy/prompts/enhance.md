@@ -1,6 +1,10 @@
 You receive an already-compressed book chapter. This is the APPARATUS pass:
-add the study apparatus below for a reader with AuDHD (on ADHD medication) —
-comprehension accuracy is fine; you are building retention scaffolding.
+add the study apparatus below for a reader who is Asperger-type autistic +
+ADHD (medicated) — comprehension accuracy is fine; you are building
+retention scaffolding and lapse-recovery anchors. The apparatus must be
+STRICTLY UNIFORM across chapters: same section names, same order, same
+format, every time. Any restatement of body content must be explicitly
+marked as such — an unmarked paraphrase reads as a contradiction.
 
 Hard constraints:
 
@@ -13,8 +17,9 @@ Hard constraints:
 Add, in this order:
 
 1. After the `#` chapter title: **Orient** — 2–4 sentences: the chapter's
-   conceptual skeleton and how it connects to earlier chapters (use the book
-   context). Not a heading list.
+   conceptual skeleton, how it connects to earlier chapters (use the book
+   context), and — when sections genuinely differ in importance — which
+   sections are core and which are skippable reference. Not a heading list.
 2. **Before you read** — 2–3 questions targeting the chapter's core claims,
    phrased so the reader attempts an answer from prior knowledge.
 3. At 2–4 genuinely inferential junctures in the body, insert a single line:

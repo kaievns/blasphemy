@@ -49,3 +49,12 @@ Record notable prompt changes here with date + what/why.
   apparatus swamped the cut rules. Added hard compression budget (output =
   40-65% of input, apparatus paid from the budget), credits carve-out for
   acknowledgment/blurb name-lists, light apparatus for front matter.
+- 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
+  contract, shrink pass recovered only 4-9%. Split into two passes:
+  compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-23: research re-scoped to Asperger-type + medicated ADHD
+  (reader-profile.md v2). Layered split: rigid uniform scaffolding, varied
+  interest-dense content. Dropped ~25-word sentence cap (choppy prose
+  destroys connectives), added keep-specifics rule (edge cases, exceptions,
+  exact values), systemizing structure (cases/invariants/if-then tables),
+  marked-recap rule, plausibility flagging, skippability in Orient.
