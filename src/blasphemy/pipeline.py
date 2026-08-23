@@ -64,6 +64,7 @@ def optimise(
     workdir: str | Path,
     min_words: int = 200,
     skip: set[int] | None = None,
+    only: set[int] | None = None,
     force: bool = False,
     title_suffix: str = " (Optimised)",
     badge_text: str | None = "OPTIMISED",
@@ -86,7 +87,12 @@ def optimise(
         source_file = workdir / f"{chapter.index:03d}.src.md"
         output_file = workdir / f"{chapter.index:03d}.md"
 
-        if chapter.is_nav or chapter.words < min_words or chapter.index in (skip or set()):
+        if (
+            chapter.is_nav
+            or chapter.words < min_words
+            or chapter.index in (skip or set())
+            or (only is not None and chapter.index not in only)
+        ):
             result = Result(
                 chapter.index, chapter.item_id, chapter.title,
                 "skipped", chapter.words, chapter.words,
