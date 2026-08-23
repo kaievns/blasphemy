@@ -1,4 +1,4 @@
-import pytest
+import re
 
 from blasphemy import epub, pipeline
 
@@ -71,6 +71,29 @@ def test_source_markdown_written_for_inspection(sample_epub, tmp_path):
     rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
     _, workdir, _ = optimise(sample_epub, tmp_path, rewrite)
     assert "quick brown fox" in (workdir / "001.src.md").read_text()
+
+
+def test_protected_math_restored_in_output(math_epub, tmp_path):
+    def rewrite(md):
+        token = re.search(r"⟦MATH[^⟧]*⟧", md).group()
+        return "# M\n\n" + " ".join(["word"] * 100) + f"\n\n{token}"
+
+    out, _, results = optimise(math_epub, tmp_path, rewrite)
+    assert results[0].status == "rewritten"
+    chapters = epub.chapters(epub.load(out))
+    assert "<msup>" in chapters[0].html
+    assert "⟦" not in chapters[0].html
+
+
+def test_lost_protected_block_fails_chapter(math_epub, tmp_path):
+    rewrite = lambda md: "# M\n\n" + " ".join(["word"] * 100)
+    out, workdir, results = optimise(math_epub, tmp_path, rewrite)
+    assert results[0].status == "failed"
+    assert "MATH-0" in results[0].detail
+    assert not (workdir / "000.md").exists()
+    assert (workdir / "000.failed.md").exists()
+    chapters = epub.chapters(epub.load(out))
+    assert "quick brown fox" in chapters[0].html
 
 
 def test_sane_ratio_bounds():

@@ -1,0 +1,58 @@
+from blasphemy import blocks, convert
+
+MATHML = "<p>Energy: <math><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math></p>"
+SVG = '<svg viewBox="0 0 10 10"><title>request flow</title><rect/></svg>'
+
+
+def test_protect_replaces_with_gist_token():
+    html, protected = blocks.protect(MATHML)
+    assert "<math>" not in html
+    assert "⟦MATH-0: E = m c 2⟧" in html
+    assert protected["MATH-0"].startswith("<math>")
+
+
+def test_svg_gist_uses_title():
+    html, protected = blocks.protect(f"<p>Flow:</p>{SVG}")
+    assert "⟦SVG-0: request flow⟧" in html
+    assert "SVG-0" in protected
+
+
+def test_nested_protected_tags_kept_whole():
+    html, protected = blocks.protect("<svg><title>t</title><svg><rect/></svg></svg>")
+    assert len(protected) == 1
+    assert protected["SVG-0"].count("<svg") == 2
+
+
+def test_restore_roundtrip():
+    html, protected = blocks.protect(MATHML)
+    restored, missing = blocks.restore(html, protected)
+    assert missing == []
+    assert "<msup>" in restored
+
+
+def test_restore_tolerates_edited_gist():
+    _, protected = blocks.protect(MATHML)
+    restored, missing = blocks.restore("before ⟦MATH-0⟧ after", protected)
+    assert missing == []
+    assert "<math>" in restored
+
+
+def test_restore_reports_missing():
+    _, protected = blocks.protect(MATHML)
+    restored, missing = blocks.restore("no tokens here", protected)
+    assert missing == ["MATH-0"]
+
+
+def test_restore_deduplicates_repeated_token():
+    _, protected = blocks.protect(MATHML)
+    restored, missing = blocks.restore("⟦MATH-0⟧ mid ⟦MATH-0⟧", protected)
+    assert missing == []
+    assert restored.count("<math>") == 1
+
+
+def test_token_survives_markdown_roundtrip():
+    html, protected = blocks.protect(MATHML)
+    md = convert.html_to_markdown(html)
+    restored, missing = blocks.restore(convert.markdown_to_html(md), protected)
+    assert missing == []
+    assert "<msup>" in restored

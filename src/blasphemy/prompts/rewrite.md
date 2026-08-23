@@ -24,5 +24,9 @@ Output rules — these are hard requirements:
 - Output ONLY the rewritten chapter as markdown.
 - No preamble, no commentary, no "Here is", no wrapping code fence.
 - Preserve any images (`![...](...)`) where they appear.
+- Tokens like `⟦MATH-1: ...⟧` or `⟦SVG-2: ...⟧` are formulas/diagrams removed
+  for transit. The text after the colon tells you what they contain — use it
+  to understand the surrounding prose. Reproduce every token verbatim, in its
+  logical place. Never drop, merge, or invent tokens.
 - If the input is not prose (index, glossary, notes), return it lightly
   cleaned rather than rewritten.

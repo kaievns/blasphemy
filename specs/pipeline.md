@@ -40,11 +40,23 @@ This makes long runs resumable and prompt iteration inspectable/diffable.
 - Sanity check on output: word ratio vs input must be within [0.05, 1.5],
   else treated as failure (guards against refusals/truncation).
 
+## Protected blocks
+
+MathML (`<math>`) and inline SVG don't survive the HTML→markdown→HTML round
+trip, so before conversion they're swapped for tokens (`⟦MATH-0: E=mc2⟧`)
+carrying a text gist — Claude keeps semantic context for compressing the
+surrounding prose without touching the fragile XML. Originals are re-injected
+after conversion back to HTML. A lost token fails the chapter (original kept,
+output evicted from cache into `NNN.failed.md`).
+
 ## Known limitations (v1)
 
 - Original intra-book anchors/cross-references may break (rewritten HTML has
   new structure). TOC at spine level survives.
 - Very long chapters are sent whole; no chunking yet. Claude's context makes
   this fine for normal books.
-- Images inside chapters are dropped from rewritten output (markdown pipeline
-  does carry `![...]` through, but Claude may drop them; revisit if it hurts).
+- Images: `![...]` carries through both conversions; the prompt orders Claude
+  to keep them but nothing enforces it yet (extend protected blocks if a real
+  book loses images).
+- Tables with colspan/rowspan flatten (markdown can't express merges); cell
+  data survives.

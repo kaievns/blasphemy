@@ -39,3 +39,25 @@ def make_book(tmp_path, name="sample.epub"):
 @pytest.fixture
 def sample_epub(tmp_path):
     return make_book(tmp_path)
+
+
+@pytest.fixture
+def math_epub(tmp_path):
+    book = eb.EpubBook()
+    book.set_identifier("math-id")
+    book.set_title("Math Book")
+    book.set_language("en")
+    ch = eb.EpubHtml(title="Math", file_name="math.xhtml", uid="math")
+    ch.set_content(
+        f"<html><body><h1>Math</h1><p>{LONG_PARAGRAPH}</p>"
+        "<p>Energy: <math><mi>E</mi><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup>"
+        "</math></p></body></html>".encode()
+    )
+    book.add_item(ch)
+    book.toc = (ch,)
+    book.spine = [ch]
+    book.add_item(eb.EpubNcx())
+    book.add_item(eb.EpubNav())
+    path = tmp_path / "math.epub"
+    eb.write_epub(str(path), book)
+    return path

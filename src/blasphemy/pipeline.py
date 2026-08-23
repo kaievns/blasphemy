@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import convert, epub
+from . import blocks, convert, epub
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
@@ -47,7 +47,8 @@ def optimise(
     book = epub.load(epub_path)
     results = []
     for chapter in epub.chapters(book):
-        source_md = convert.html_to_markdown(chapter.html)
+        protected_html, protected = blocks.protect(chapter.html)
+        source_md = convert.html_to_markdown(protected_html)
         source_file = workdir / f"{chapter.index:03d}.src.md"
         output_file = workdir / f"{chapter.index:03d}.md"
 
@@ -75,9 +76,16 @@ def optimise(
                 except Exception as error:
                     output_md, status, detail = None, "failed", str(error)
             if output_md is not None:
-                epub.replace_content(
-                    book, chapter.item_id, convert.markdown_to_html(output_md)
+                html, missing = blocks.restore(
+                    convert.markdown_to_html(output_md), protected
                 )
+                if missing:
+                    (workdir / f"{chapter.index:03d}.failed.md").write_text(output_md)
+                    output_file.unlink(missing_ok=True)
+                    output_md, status = None, "failed"
+                    detail = f"lost protected blocks: {', '.join(missing)}"
+                else:
+                    epub.replace_content(book, chapter.item_id, html)
             result = Result(
                 chapter.index, chapter.item_id, chapter.title, status,
                 len(source_md.split()),

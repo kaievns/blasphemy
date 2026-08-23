@@ -30,3 +30,5 @@ Live in `src/blasphemy/prompts/`. Default: `rewrite.md`. Override with
 Record notable prompt changes here with date + what/why.
 
 - 2026-08-23: initial version.
+- 2026-08-23: added protected-block token rule (⟦MATH-n⟧/⟦SVG-n⟧) — keep
+  verbatim, gist after the colon supplies context for compression.
