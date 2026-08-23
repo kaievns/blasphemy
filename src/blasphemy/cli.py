@@ -60,20 +60,38 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"primer ready ({len(book_primer.split())} words)", flush=True)
 
+    def call_claude(payload: str, system: str) -> str:
+        return claude.rewrite(
+            payload, system,
+            model=args.model, effort=args.effort, timeout=args.timeout,
+        )
+
     def rewrite(chapter_md: str, chapter: epub.Chapter) -> str:
         system = prompt
         if book_primer:
             system += primer.chapter_context(book_primer, chapter)
         words = len(chapter_md.split())
+        low, high = int(words * 0.4), int(words * 0.65)
         contract = (
-            f"[Length contract: input is {words} words; your rewritten chapter "
-            f"must be {int(words * 0.4)}-{int(words * 0.65)} words, retention "
-            f"apparatus included.]\n\n"
+            f"\n\n[Length contract: the chapter above is {words} words; your "
+            f"rewritten chapter must be {low}-{high} words, retention apparatus "
+            f"included.]"
         )
-        return claude.rewrite(
-            contract + chapter_md, system,
-            model=args.model, effort=args.effort, timeout=args.timeout,
-        )
+        draft = call_claude(chapter_md + contract, system)
+        draft_words = len(draft.split())
+        if draft_words > int(words * 0.75):
+            print(f"  shrink pass: draft {draft_words}w > contract {low}-{high}w", flush=True)
+            shrink = (
+                f"{draft}\n\n[The draft above is {draft_words} words; the contract "
+                f"is {low}-{high} words. Compress it to contract by dropping and "
+                f"merging passages. Keep the structure, all ⟦...⟧ tokens, headings, "
+                f"code blocks, facts, and apparatus sections. Output only the "
+                f"compressed chapter as markdown.]"
+            )
+            shrunk = call_claude(shrink, system)
+            if low // 2 <= len(shrunk.split()) < draft_words:
+                draft = shrunk
+        return draft
 
     def progress(result: pipeline.Result) -> None:
         line = (

@@ -36,7 +36,18 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     chapter_system = rewrite.call_args_list[1].args[1]
     assert "# Book context" in chapter_system
     assert "Current chapter" in chapter_system
-    assert rewrite.call_args_list[1].args[0].startswith("[Length contract:")
+    assert "[Length contract:" in rewrite.call_args_list[1].args[0]
+
+
+def test_shrink_pass_on_oversized_draft(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    oversized = "# R\n\n" + " ".join(["word"] * 450)
+    shrunk = "# R\n\n" + " ".join(["word"] * 200)
+    with patch("blasphemy.claude.rewrite", side_effect=[oversized, shrunk] * 2) as rewrite:
+        code = cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"])
+    assert code == 0
+    assert rewrite.call_count == 4
+    assert "[The draft above is" in rewrite.call_args_list[1].args[0]
 
 
 def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):
