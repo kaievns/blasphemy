@@ -36,6 +36,7 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     chapter_system = rewrite.call_args_list[1].args[1]
     assert "# Book context" in chapter_system
     assert "Current chapter" in chapter_system
+    assert rewrite.call_args_list[1].args[0].startswith("[Length contract:")
 
 
 def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):

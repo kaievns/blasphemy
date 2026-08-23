@@ -64,8 +64,14 @@ def main(argv: list[str] | None = None) -> int:
         system = prompt
         if book_primer:
             system += primer.chapter_context(book_primer, chapter)
+        words = len(chapter_md.split())
+        contract = (
+            f"[Length contract: input is {words} words; your rewritten chapter "
+            f"must be {int(words * 0.4)}-{int(words * 0.65)} words, retention "
+            f"apparatus included.]\n\n"
+        )
         return claude.rewrite(
-            chapter_md, system,
+            contract + chapter_md, system,
             model=args.model, effort=args.effort, timeout=args.timeout,
         )
 

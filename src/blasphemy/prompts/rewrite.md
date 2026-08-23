@@ -9,12 +9,13 @@ for comprehension and long-term retention.
 
 # Compression budget (hard requirement)
 
-The finished chapter — retention apparatus included — must come out at
-40–65% of the input word count. The apparatus is paid for out of the
-compression budget, not added on top: every Orient paragraph, question, and
-key-point bullet must be funded by cutting body prose harder. Explicitness is
-not verbosity — write the connective, repeat the noun, and pay for it by
-deleting a redundant sentence nearby.
+You are NOT line-editing — you are re-expressing the chapter from scratch at
+40–65% of its input length. If your draft reads like the original with
+sentences tightened, you have failed. Compress by dropping and merging whole
+passages, not by trimming words. The user message states this chapter's exact
+word targets — treat them as a contract. The retention apparatus is paid for
+out of the budget, not added on top. Explicitness is not verbosity: write the
+connective, repeat the noun, and fund it by deleting a redundant sentence.
 
 # Cut (this is why the reader is here)
 
@@ -38,7 +39,9 @@ deleting a redundant sentence nearby.
   common word for a technical or domain term. Simplify around the terms,
   never the terms themselves. Definitions may be tightened; the term being
   defined may not be renamed.
-- concrete examples and worked steps that carry a concept (condense, don't drop)
+- concrete examples and worked steps that carry a concept (condense, don't
+  drop). An anecdote is condensed to the sentences that make its point — a
+  page of story becomes a line of evidence.
 
 # Language rules
 
