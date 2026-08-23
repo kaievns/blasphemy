@@ -20,6 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"])
     parser.add_argument("--prompt", type=Path)
     parser.add_argument("--min-words", type=int, default=200)
+    parser.add_argument(
+        "--skip", default="", help="comma-separated chapter indices to pass through"
+    )
     parser.add_argument("--timeout", type=int, default=1200)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--list", action="store_true", help="list chapters and exit")
@@ -59,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     results = pipeline.optimise(
         args.epub, out_path, rewrite, workdir,
         min_words=args.min_words, force=args.force, progress=progress,
+        skip={int(i) for i in args.skip.split(",") if i.strip()},
     )
     failed = sum(1 for r in results if r.status == "failed")
     print(f"\nwrote {out_path}  ({len(results)} chapters, {failed} failed, cache: {workdir})")

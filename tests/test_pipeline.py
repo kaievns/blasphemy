@@ -47,6 +47,20 @@ def test_cache_reused_and_force(sample_epub, tmp_path):
     assert len(calls) == 4
 
 
+def test_skip_indices_pass_through(sample_epub, tmp_path):
+    calls = []
+
+    def rewrite(md):
+        calls.append(md)
+        return "# R\n\n" + " ".join(["word"] * 100)
+
+    _, _, results = optimise(sample_epub, tmp_path, rewrite, skip={1})
+    statuses = {r.item_id: r.status for r in results}
+    assert statuses["ch1"] == "skipped"
+    assert statuses["ch2"] == "rewritten"
+    assert len(calls) == 1
+
+
 def test_failure_keeps_original(sample_epub, tmp_path):
     def rewrite(md):
         raise RuntimeError("claude exploded")

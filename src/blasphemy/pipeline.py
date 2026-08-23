@@ -37,6 +37,7 @@ def optimise(
     rewrite: Callable[[str], str],
     workdir: str | Path,
     min_words: int = 200,
+    skip: set[int] | None = None,
     force: bool = False,
     progress: Callable[[Result], None] = lambda r: None,
 ) -> list[Result]:
@@ -52,7 +53,7 @@ def optimise(
         source_file = workdir / f"{chapter.index:03d}.src.md"
         output_file = workdir / f"{chapter.index:03d}.md"
 
-        if chapter.words < min_words:
+        if chapter.words < min_words or chapter.index in (skip or set()):
             result = Result(
                 chapter.index, chapter.item_id, chapter.title,
                 "skipped", chapter.words, chapter.words,
