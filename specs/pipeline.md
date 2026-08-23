@@ -49,6 +49,17 @@ surrounding prose without touching the fragile XML. Originals are re-injected
 after conversion back to HTML. A lost token fails the chapter (original kept,
 output evicted from cache into `NNN.failed.md`).
 
+## Output identity & styling
+
+- Title gets " (Optimised)" appended; cover image gets an "OPTIMISED" banner
+  (Pillow), so originals and optimised versions are distinguishable in lists.
+- ebooklib's writer regenerates every chapter document from a template,
+  discarding original heads (stylesheet links) and body attributes. We bypass
+  it: documents are written raw (`_RawHtml`), untouched chapters byte-for-byte
+  original, rewritten chapters keep their original head + body attrs so the
+  book's CSS keeps applying. Raw document bytes live in `item.content`;
+  `item.get_content()` is the regenerating path — never use it for documents.
+
 ## Known limitations (v1)
 
 - Original intra-book anchors/cross-references may break (rewritten HTML has

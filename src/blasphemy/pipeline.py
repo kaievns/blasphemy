@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import blocks, convert, epub
+from . import blocks, convert, cover, epub
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
@@ -39,6 +39,8 @@ def optimise(
     min_words: int = 200,
     skip: set[int] | None = None,
     force: bool = False,
+    title_suffix: str = " (Optimised)",
+    badge_text: str | None = "OPTIMISED",
     progress: Callable[[Result], None] = lambda r: None,
 ) -> list[Result]:
     epub_path = Path(epub_path)
@@ -95,6 +97,13 @@ def optimise(
             )
         results.append(result)
         progress(result)
+
+    if title_suffix:
+        epub.retitle(book, title_suffix)
+    if badge_text:
+        cover_item = epub.cover_image(book)
+        if cover_item is not None:
+            cover_item.set_content(cover.badge(cover_item.get_content(), badge_text))
 
     epub.save(book, out_path)
     return results

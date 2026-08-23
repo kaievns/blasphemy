@@ -1,7 +1,18 @@
+import io
+
 import pytest
 from ebooklib import epub as eb
+from PIL import Image
+
+from blasphemy import epub as bp
 
 LONG_PARAGRAPH = "The quick brown fox jumps over the lazy dog again and again. " * 40
+
+
+def png_bytes(color=(20, 80, 160), size=(200, 300)):
+    buffer = io.BytesIO()
+    Image.new("RGB", size, color).save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def make_book(tmp_path, name="sample.epub"):
@@ -9,13 +20,22 @@ def make_book(tmp_path, name="sample.epub"):
     book.set_identifier("test-id")
     book.set_title("Sample Book")
     book.set_language("en")
+    book.set_cover("cover-img.png", png_bytes(), create_page=False)
+
+    css = eb.EpubItem(
+        uid="css", file_name="style.css", media_type="text/css",
+        content=b"h1 { color: navy; }",
+    )
+    book.add_item(css)
 
     cover = eb.EpubHtml(title="Cover", file_name="cover.xhtml", uid="cover")
     cover.set_content(b"<html><body><p>Cover page</p></body></html>")
 
     ch1 = eb.EpubHtml(title="One", file_name="ch1.xhtml", uid="ch1")
     ch1.set_content(
-        f"<html><body><h1>Chapter One</h1><p>{LONG_PARAGRAPH}</p>"
+        '<html><head><link rel="stylesheet" href="style.css"/></head>'
+        f'<body class="chapter" epub:type="bodymatter"><h1>Chapter One</h1>'
+        f"<p>{LONG_PARAGRAPH}</p>"
         f"<pre><code>print('hello')</code></pre></body></html>".encode()
     )
 
@@ -32,7 +52,7 @@ def make_book(tmp_path, name="sample.epub"):
     book.add_item(eb.EpubNav())
 
     path = tmp_path / name
-    eb.write_epub(str(path), book)
+    bp.save(book, path)
     return path
 
 

@@ -110,6 +110,16 @@ def test_lost_protected_block_fails_chapter(math_epub, tmp_path):
     assert "quick brown fox" in chapters[0].html
 
 
+def test_output_retitled_and_cover_badged(sample_epub, tmp_path):
+    rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
+    out, _, _ = optimise(sample_epub, tmp_path, rewrite)
+
+    book = epub.load(out)
+    assert book.metadata[epub.DC]["title"][0][0] == "Sample Book (Optimised)"
+    original_cover = epub.cover_image(epub.load(sample_epub)).get_content()
+    assert epub.cover_image(book).get_content() != original_cover
+
+
 def test_sane_ratio_bounds():
     words = lambda n: " ".join(["w"] * n)
     assert pipeline.sane(words(100), words(50))
