@@ -44,3 +44,8 @@ Record notable prompt changes here with date + what/why.
   irony, flat positions), fixed chapter skeleton, retention apparatus
   (prequestions, pause prompts, key points, retrieval questions), anchor
   tokens, book-primer context. First test run: Statistics Done Wrong.
+- 2026-08-23: first test run showed growth instead of compression (preface
+  +22%, ch1 +7% vs old prompt's -34%/-44%): explicitness + keep-rules +
+  apparatus swamped the cut rules. Added hard compression budget (output =
+  40-65% of input, apparatus paid from the budget), credits carve-out for
+  acknowledgment/blurb name-lists, light apparatus for front matter.

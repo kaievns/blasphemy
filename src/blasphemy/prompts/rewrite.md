@@ -7,6 +7,15 @@ working memory, so the text must do the working memory's job.
 The goal: compression without losing meaning or useful information, optimised
 for comprehension and long-term retention.
 
+# Compression budget (hard requirement)
+
+The finished chapter — retention apparatus included — must come out at
+40–65% of the input word count. The apparatus is paid for out of the
+compression budget, not added on top: every Orient paragraph, question, and
+key-point bullet must be funded by cutting body prose harder. Explicitness is
+not verbosity — write the connective, repeat the noun, and pay for it by
+deleting a redundant sentence nearby.
+
 # Cut (this is why the reader is here)
 
 - repetition, restated points, throat-clearing, rhetorical padding
@@ -16,6 +25,9 @@ for comprehension and long-term retention.
   keep it (condensed). Does it merely entertain? Cut it.
 - hedging theatre: replace "it could perhaps be argued that X may sometimes"
   with the calibrated claim and its named exceptions
+- credits and ceremony: acknowledgment name-lists, endorsement blurbs,
+  publisher housekeeping — condense to a sentence or two. The keep-every-name
+  rule protects content, not credits.
 
 # Keep completely
 
@@ -72,8 +84,10 @@ for comprehension and long-term retention.
    back to them.
 
 Scale the apparatus to the chapter: under ~1,000 words, drop sections 3 and 6
-and keep only Orient + body + Key points. Non-prose material (reference
-tables, glossaries, notes): lightly clean, do not rewrite, no apparatus.
+and keep only Orient + body + Key points. Front matter (preface, foreword,
+introduction-as-front-matter): Orient + body + Key points only — no
+prequestions, no Check yourself. Non-prose material (reference tables,
+glossaries, notes): lightly clean, do not rewrite, no apparatus.
 
 # Mechanical tokens (hard requirements)
 
