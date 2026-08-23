@@ -31,6 +31,12 @@ Add, in this order:
    cumulative questions reaching back to earlier chapters listed in the book
    context (never later ones).
 
+Apparatus budget: everything you add must total at most ~20% of the
+chapter's word count (the user message states the exact total cap — a
+contract). Scale to fit: on smaller chapters use a 2-sentence Orient,
+2 prequestions, 2 Pauses, and 3-4 questions with 1-2 sentence answers.
+Answers are always terse — a checkable claim, not a re-explanation.
+
 Scaling: if the chapter is under ~1,000 words, add only Orient and Key
 points. If it is non-prose reference material, add nothing and return it
 unchanged.

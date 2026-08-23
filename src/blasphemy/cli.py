@@ -101,22 +101,35 @@ def main(argv: list[str] | None = None) -> int:
             if low // 2 <= len(shrunk.split()) < compressed_words:
                 compressed = shrunk
                 compressed_words = len(compressed.split())
+                print(f"  shrink accepted: {compressed_words}w", flush=True)
+            else:
+                print(f"  shrink rejected: {len(shrunk.split())}w", flush=True)
 
-        cap = int(compressed_words * 1.3)
+        cap = min(int(compressed_words * 1.3), int(words * 0.75))
         grow = (
             f"\n\n[Growth contract: the chapter above is {compressed_words} "
             f"words; your output with apparatus added must stay under {cap} "
-            f"words.]"
+            f"words total.]"
         )
-        final = call_claude(compressed + grow, with_context(enhance_prompt, chapter))
+        enhance_system = with_context(enhance_prompt, chapter)
+        final = call_claude(compressed + grow, enhance_system)
         final_words = len(final.split())
-        if not (compressed_words * 0.8 <= final_words <= compressed_words * 1.5):
-            print(
-                f"  apparatus pass out of bounds ({final_words}w), keeping "
-                f"compressed body only",
-                flush=True,
+        if not (compressed_words * 0.95 <= final_words <= cap):
+            print(f"  apparatus retry: {final_words}w vs cap {cap}w", flush=True)
+            retry = (
+                f"{grow}\n[Your previous output was {final_words} words. Add "
+                f"leaner apparatus: fewer questions, 1-2 sentence answers, "
+                f"shorter Orient.]"
             )
-            return compressed
+            final = call_claude(compressed + retry, enhance_system)
+            final_words = len(final.split())
+            if not (compressed_words * 0.95 <= final_words <= cap):
+                print(
+                    f"  apparatus out of bounds ({final_words}w), keeping "
+                    f"compressed body only",
+                    flush=True,
+                )
+                return compressed
         return final
 
     def progress(result: pipeline.Result) -> None:
