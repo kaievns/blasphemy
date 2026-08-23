@@ -64,6 +64,7 @@ def test_sanity_check_rejects_tiny_output(sample_epub, tmp_path):
     _, workdir, results = optimise(sample_epub, tmp_path, lambda md: "ok")
     assert all(r.status == "failed" for r in results if r.item_id != "cover")
     assert not (workdir / "001.md").exists()
+    assert (workdir / "001.failed.md").read_text() == "ok"
 
 
 def test_source_markdown_written_for_inspection(sample_epub, tmp_path):

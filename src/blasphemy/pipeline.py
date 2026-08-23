@@ -65,7 +65,11 @@ def optimise(
                 try:
                     output_md = rewrite(source_md)
                     if not sane(source_md, output_md):
-                        raise ValueError("output failed sanity check (word ratio)")
+                        failed_file = workdir / f"{chapter.index:03d}.failed.md"
+                        failed_file.write_text(output_md)
+                        raise ValueError(
+                            f"output failed sanity check (word ratio), see {failed_file}"
+                        )
                     output_file.write_text(output_md)
                     status, detail = "rewritten", ""
                 except Exception as error:
