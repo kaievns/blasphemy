@@ -30,24 +30,30 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     assert rewrite.call_args.kwargs["model"] == "sonnet"
     assert "rewritten" in capsys.readouterr().out
 
-    # first call built the primer; chapter calls carry primer + chapter context
+    # call order: primer, then compress + enhance per chapter
     primer_system = rewrite.call_args_list[0].args[1]
     assert "book primer" in primer_system.lower()
-    chapter_system = rewrite.call_args_list[1].args[1]
-    assert "# Book context" in chapter_system
-    assert "Current chapter" in chapter_system
+    compress_system = rewrite.call_args_list[1].args[1]
+    assert "# Book context" in compress_system
+    assert "Current chapter" in compress_system
     assert "[Length contract:" in rewrite.call_args_list[1].args[0]
+    assert "[Growth contract:" in rewrite.call_args_list[2].args[0]
+    assert "APPARATUS pass" in rewrite.call_args_list[2].args[1]
 
 
 def test_shrink_pass_on_oversized_draft(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     oversized = "# R\n\n" + " ".join(["word"] * 450)
     shrunk = "# R\n\n" + " ".join(["word"] * 200)
-    with patch("blasphemy.claude.rewrite", side_effect=[oversized, shrunk] * 2) as rewrite:
+    enhanced = "# R\n\n" + " ".join(["word"] * 240)
+    with patch(
+        "blasphemy.claude.rewrite", side_effect=[oversized, shrunk, enhanced] * 2
+    ) as rewrite:
         code = cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"])
     assert code == 0
-    assert rewrite.call_count == 4
+    assert rewrite.call_count == 6
     assert "[The draft above is" in rewrite.call_args_list[1].args[0]
+    assert "[Growth contract:" in rewrite.call_args_list[2].args[0]
 
 
 def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):

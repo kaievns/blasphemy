@@ -34,7 +34,7 @@ def rewrite(
     effort: str | None = None,
     timeout: int = 1200,
     retries: int = 2,
-    backoff: float = 10.0,
+    backoff: float = 30.0,
 ) -> str:
     cmd = build_command(model, effort, system_prompt)
     last_error = ""
