@@ -35,7 +35,13 @@ def protect(html: str) -> tuple[str, dict[str, str]]:
     return str(soup), blocks
 
 
+def _unescape_tokens(html: str) -> str:
+    # markdown escaping can add backslashes inside token spans
+    return re.sub(r"⟦[^⟦⟧]*⟧", lambda m: m.group().replace("\\", ""), html)
+
+
 def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
+    html = _unescape_tokens(html)
     missing = []
     for key, original in blocks.items():
         kind, block_id = key.rsplit("-", 1)
@@ -45,4 +51,34 @@ def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
             missing.append(key)
         else:
             html = pattern.sub("", html)
+    return html, missing
+
+
+def protect_anchors(html: str, ids: set[str]) -> tuple[str, list[str]]:
+    if not ids:
+        return html, []
+    soup = BeautifulSoup(html, "html.parser")
+    found = []
+    for element in soup.find_all(id=True):
+        anchor_id = element.get("id")
+        if anchor_id in ids and anchor_id not in found:
+            element.insert_before(f"⟦ANCHOR:{anchor_id}⟧")
+            found.append(anchor_id)
+    return str(soup), found
+
+
+def restore_anchors(html: str, ids: list[str]) -> tuple[str, list[str]]:
+    html = _unescape_tokens(html)
+    missing = []
+    for anchor_id in ids:
+        pattern = re.compile(rf"⟦ANCHOR:{re.escape(anchor_id)}⟧")
+        html, count = pattern.subn(f'<a id="{anchor_id}"></a>', html, count=1)
+        if count == 0:
+            missing.append(anchor_id)
+        else:
+            html = pattern.sub("", html)
+    # a fallback anchor at the chapter top beats a broken link
+    if missing:
+        fallback = "".join(f'<a id="{a}"></a>' for a in missing)
+        html = fallback + html
     return html, missing

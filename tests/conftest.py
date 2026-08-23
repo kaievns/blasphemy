@@ -35,13 +35,15 @@ def make_book(tmp_path, name="sample.epub"):
     ch1.set_content(
         '<html><head><link rel="stylesheet" href="style.css"/></head>'
         f'<body class="chapter" epub:type="bodymatter"><h1>Chapter One</h1>'
+        f'<h2 id="sec1">Section One</h2>'
         f"<p>{LONG_PARAGRAPH}</p>"
         f"<pre><code>print('hello')</code></pre></body></html>".encode()
     )
 
     ch2 = eb.EpubHtml(title="Two", file_name="ch2.xhtml", uid="ch2")
     ch2.set_content(
-        f"<html><body><h1>Chapter Two</h1><p>{LONG_PARAGRAPH}</p></body></html>".encode()
+        f"<html><body><h1>Chapter Two</h1><p>{LONG_PARAGRAPH}</p>"
+        '<p><a href="ch1.xhtml#sec1">see section one</a></p></body></html>'.encode()
     )
 
     for item in (cover, ch1, ch2):

@@ -50,6 +50,33 @@ def test_restore_deduplicates_repeated_token():
     assert restored.count("<math>") == 1
 
 
+def test_protect_anchors_inserts_tokens():
+    html, found = blocks.protect_anchors(
+        '<h2 id="sec1">Title</h2><p id="other">x</p>', {"sec1"}
+    )
+    assert found == ["sec1"]
+    assert "⟦ANCHOR:sec1⟧" in html
+    assert "⟦ANCHOR:other⟧" not in html
+
+
+def test_restore_anchors_in_place():
+    html, missing = blocks.restore_anchors("before ⟦ANCHOR:sec1⟧ after", ["sec1"])
+    assert missing == []
+    assert 'before <a id="sec1"></a> after' == html
+
+
+def test_restore_anchors_fallback_to_top():
+    html, missing = blocks.restore_anchors("<p>no token</p>", ["sec1"])
+    assert missing == ["sec1"]
+    assert html.startswith('<a id="sec1"></a>')
+
+
+def test_restore_anchors_tolerates_markdown_escapes():
+    html, missing = blocks.restore_anchors(r"x ⟦ANCHOR:Page\_iv⟧ y", ["Page_iv"])
+    assert missing == []
+    assert '<a id="Page_iv"></a>' in html
+
+
 def test_token_survives_markdown_roundtrip():
     html, protected = blocks.protect(MATHML)
     md = convert.html_to_markdown(html)

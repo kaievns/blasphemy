@@ -49,6 +49,25 @@ surrounding prose without touching the fragile XML. Originals are re-injected
 after conversion back to HTML. A lost token fails the chapter (original kept,
 output evicted from cache into `NNN.failed.md`).
 
+## Cross-chapter consistency (layers, locked 2026-08-23)
+
+1. **Anchor contract** — all intra-book link targets are collected up front;
+   referenced anchors travel through the rewrite as `⟦ANCHOR:id⟧` tokens and
+   are restored as `<a id>` elements. A dropped token falls back to an anchor
+   at chapter top (link lands at chapter start, never breaks) and is reported
+   as a warning in the result detail.
+2. **Style contract** — the rewrite prompt fixes one chapter skeleton
+   (Orient → prequestions → sections → Key points → Check yourself); see
+   `specs/reader-profile.md` for the evidence base.
+3. **Book primer** — one Claude call per book (prompt: `prompts/primer.md`,
+   input: chapter titles + openings) produces arc + per-chapter scope +
+   canonical terminology; cached as `primer.md` in the workdir and prepended
+   to every chapter rewrite with the current chapter's position. `--no-primer`
+   disables. Primer changes do not invalidate cached chapters — use `--force`.
+
+Layer 4 (sequential digests of previously rewritten chapters) was considered
+and deferred; revisit if back-reference fidelity is lacking in practice.
+
 ## Output identity & styling
 
 - Title gets " (Optimised)" appended; cover image gets an "OPTIMISED" banner

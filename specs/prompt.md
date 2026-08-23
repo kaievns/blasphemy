@@ -8,6 +8,12 @@
   minimal repetition, no throat-clearing.
 - Goal: **compress without losing meaning or useful information.**
 
+## Locked rules
+
+- **Original terminology is preserved verbatim.** Never replaced with
+  simplified versions for readability — simplify around terms, never
+  the terms. (Locked 2026-08-23.)
+
 ## Prompt design principles
 
 - The rewrite prompt is the `claude -p` system prompt; the chapter markdown
@@ -32,3 +38,9 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: initial version.
 - 2026-08-23: added protected-block token rule (⟦MATH-n⟧/⟦SVG-n⟧) — keep
   verbatim, gist after the colon supplies context for compression.
+- 2026-08-23: terminology-preservation rule locked.
+- 2026-08-23: full rewrite from deep research (see `reader-profile.md`):
+  language rules (referent resolution, explicit connectives, no unmarked
+  irony, flat positions), fixed chapter skeleton, retention apparatus
+  (prequestions, pause prompts, key points, retrieval questions), anchor
+  tokens, book-primer context. First test run: Statistics Done Wrong.

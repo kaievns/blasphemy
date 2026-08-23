@@ -3,11 +3,11 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import claude, epub, pipeline
+from . import claude, epub, pipeline, primer
 
 
-def default_prompt() -> str:
-    return (resources.files("blasphemy") / "prompts" / "rewrite.md").read_text()
+def default_prompt(name: str = "rewrite") -> str:
+    return (resources.files("blasphemy") / "prompts" / f"{name}.md").read_text()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--timeout", type=int, default=1200)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--no-primer", action="store_true", help="skip book primer")
     parser.add_argument("--list", action="store_true", help="list chapters and exit")
     return parser
 
@@ -44,9 +45,27 @@ def main(argv: list[str] | None = None) -> int:
     out_path = args.output or args.epub.with_suffix(".optimised.epub")
     workdir = pipeline.workdir_for(args.epub)
 
-    def rewrite(chapter_md: str) -> str:
+    book_primer = ""
+    if not args.no_primer:
+        chapters = epub.chapters(epub.load(args.epub))
+        book_primer = primer.build(
+            chapters,
+            lambda text: claude.rewrite(
+                text, default_prompt("primer"),
+                model=args.model, effort=args.effort, timeout=args.timeout,
+            ),
+            workdir,
+            force=args.force,
+            min_words=args.min_words,
+        )
+        print(f"primer ready ({len(book_primer.split())} words)", flush=True)
+
+    def rewrite(chapter_md: str, chapter: epub.Chapter) -> str:
+        system = prompt
+        if book_primer:
+            system += primer.chapter_context(book_primer, chapter)
         return claude.rewrite(
-            chapter_md, prompt,
+            chapter_md, system,
             model=args.model, effort=args.effort, timeout=args.timeout,
         )
 

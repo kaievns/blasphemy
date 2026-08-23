@@ -17,8 +17,9 @@ python3 -m venv .venv
 ```
 
 Key flags: `-o` output path, `--prompt` alternate prompt file, `--min-words`
-skip threshold (default 200), `--effort` claude effort level, `--timeout`
-seconds per chapter (default 1200).
+skip threshold (default 200), `--skip` chapter indices to pass through,
+`--effort` claude effort level, `--timeout` seconds per chapter (default
+1200), `--no-primer` to skip the book-primer context pass.
 
 Requires the `claude` CLI logged in (subscription auth). Progress prints per
 chapter; interrupted runs resume from the `.blasphemy/` cache.

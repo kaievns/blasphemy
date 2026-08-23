@@ -1,4 +1,5 @@
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -25,6 +26,31 @@ def workdir_for(epub_path: Path, root: Path | None = None) -> Path:
     return (root or Path(".blasphemy")) / f"{epub_path.stem}-{digest}"
 
 
+def referenced_anchors(book, chapters: list[epub.Chapter]) -> dict[str, set[str]]:
+    refs: dict[str, set[str]] = {}
+
+    def add(file: str, fragment: str, same_file: str) -> None:
+        name = (file or same_file).split("/")[-1]
+        refs.setdefault(name, set()).add(fragment)
+
+    for chapter in chapters:
+        for match in re.finditer(r'href="([^"#]*)#([^"]+)"', chapter.html):
+            add(match.group(1), match.group(2), chapter.href)
+
+    def walk(entries) -> None:
+        for entry in entries:
+            if isinstance(entry, (tuple, list)):
+                walk(entry)
+            else:
+                href = getattr(entry, "href", "") or ""
+                if "#" in href:
+                    file, fragment = href.split("#", 1)
+                    add(file, fragment, file)
+
+    walk(book.toc)
+    return refs
+
+
 def sane(source_md: str, output_md: str) -> bool:
     words_in = max(len(source_md.split()), 1)
     ratio = len(output_md.split()) / words_in
@@ -34,7 +60,7 @@ def sane(source_md: str, output_md: str) -> bool:
 def optimise(
     epub_path: str | Path,
     out_path: str | Path,
-    rewrite: Callable[[str], str],
+    rewrite: Callable[[str, epub.Chapter], str],
     workdir: str | Path,
     min_words: int = 200,
     skip: set[int] | None = None,
@@ -48,9 +74,14 @@ def optimise(
     workdir.mkdir(parents=True, exist_ok=True)
 
     book = epub.load(epub_path)
+    all_chapters = epub.chapters(book)
+    refs = referenced_anchors(book, all_chapters)
     results = []
-    for chapter in epub.chapters(book):
-        protected_html, protected = blocks.protect(chapter.html)
+    for chapter in all_chapters:
+        anchored_html, anchor_ids = blocks.protect_anchors(
+            chapter.html, refs.get(chapter.href.split("/")[-1], set())
+        )
+        protected_html, protected = blocks.protect(anchored_html)
         source_md = convert.html_to_markdown(protected_html)
         source_file = workdir / f"{chapter.index:03d}.src.md"
         output_file = workdir / f"{chapter.index:03d}.md"
@@ -67,7 +98,7 @@ def optimise(
                 status, detail = "cached", ""
             else:
                 try:
-                    output_md = rewrite(source_md)
+                    output_md = rewrite(source_md, chapter)
                     if not sane(source_md, output_md):
                         failed_file = workdir / f"{chapter.index:03d}.failed.md"
                         failed_file.write_text(output_md)
@@ -88,6 +119,9 @@ def optimise(
                     output_md, status = None, "failed"
                     detail = f"lost protected blocks: {', '.join(missing)}"
                 else:
+                    html, lost_anchors = blocks.restore_anchors(html, anchor_ids)
+                    if lost_anchors:
+                        detail = f"anchors fell back to top: {', '.join(lost_anchors)}"
                     epub.replace_content(book, chapter.item_id, html)
             result = Result(
                 chapter.index, chapter.item_id, chapter.title, status,

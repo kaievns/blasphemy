@@ -29,3 +29,18 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     assert out.exists()
     assert rewrite.call_args.kwargs["model"] == "sonnet"
     assert "rewritten" in capsys.readouterr().out
+
+    # first call built the primer; chapter calls carry primer + chapter context
+    primer_system = rewrite.call_args_list[0].args[1]
+    assert "book primer" in primer_system.lower()
+    chapter_system = rewrite.call_args_list[1].args[1]
+    assert "# Book context" in chapter_system
+    assert "Current chapter" in chapter_system
+
+
+def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    rewritten = "# R\n\n" + " ".join(["word"] * 100)
+    with patch("blasphemy.claude.rewrite", return_value=rewritten) as rewrite:
+        cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"])
+    assert all("# Book context" not in c.args[1] for c in rewrite.call_args_list)

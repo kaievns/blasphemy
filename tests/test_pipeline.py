@@ -13,7 +13,7 @@ def optimise(sample_epub, tmp_path, rewrite, **kwargs):
 def test_short_chapters_skipped_long_rewritten(sample_epub, tmp_path):
     calls = []
 
-    def rewrite(md):
+    def rewrite(md, chapter):
         calls.append(md)
         return "# Rewritten\n\n" + " ".join(["word"] * 100)
 
@@ -31,7 +31,7 @@ def test_cache_reused_and_force(sample_epub, tmp_path):
     output = "# Cached\n\n" + " ".join(["word"] * 100)
     calls = []
 
-    def rewrite(md):
+    def rewrite(md, chapter):
         calls.append(md)
         return output
 
@@ -50,7 +50,7 @@ def test_cache_reused_and_force(sample_epub, tmp_path):
 def test_skip_indices_pass_through(sample_epub, tmp_path):
     calls = []
 
-    def rewrite(md):
+    def rewrite(md, chapter):
         calls.append(md)
         return "# R\n\n" + " ".join(["word"] * 100)
 
@@ -62,7 +62,7 @@ def test_skip_indices_pass_through(sample_epub, tmp_path):
 
 
 def test_failure_keeps_original(sample_epub, tmp_path):
-    def rewrite(md):
+    def rewrite(md, chapter):
         raise RuntimeError("claude exploded")
 
     out, _, results = optimise(sample_epub, tmp_path, rewrite)
@@ -75,20 +75,20 @@ def test_failure_keeps_original(sample_epub, tmp_path):
 
 
 def test_sanity_check_rejects_tiny_output(sample_epub, tmp_path):
-    _, workdir, results = optimise(sample_epub, tmp_path, lambda md: "ok")
+    _, workdir, results = optimise(sample_epub, tmp_path, lambda md, chapter: "ok")
     assert all(r.status == "failed" for r in results if r.item_id != "cover")
     assert not (workdir / "001.md").exists()
     assert (workdir / "001.failed.md").read_text() == "ok"
 
 
 def test_source_markdown_written_for_inspection(sample_epub, tmp_path):
-    rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
     _, workdir, _ = optimise(sample_epub, tmp_path, rewrite)
     assert "quick brown fox" in (workdir / "001.src.md").read_text()
 
 
 def test_protected_math_restored_in_output(math_epub, tmp_path):
-    def rewrite(md):
+    def rewrite(md, chapter):
         token = re.search(r"⟦MATH[^⟧]*⟧", md).group()
         return "# M\n\n" + " ".join(["word"] * 100) + f"\n\n{token}"
 
@@ -100,7 +100,7 @@ def test_protected_math_restored_in_output(math_epub, tmp_path):
 
 
 def test_lost_protected_block_fails_chapter(math_epub, tmp_path):
-    rewrite = lambda md: "# M\n\n" + " ".join(["word"] * 100)
+    rewrite = lambda md, chapter: "# M\n\n" + " ".join(["word"] * 100)
     out, workdir, results = optimise(math_epub, tmp_path, rewrite)
     assert results[0].status == "failed"
     assert "MATH-0" in results[0].detail
@@ -114,7 +114,7 @@ def test_nav_document_never_rewritten(tmp_path):
     from test_epub import _nav_book
 
     path = _nav_book(tmp_path)
-    rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
     results = pipeline.optimise(
         path, tmp_path / "out.epub", rewrite, tmp_path / "work", min_words=0
     )
@@ -125,13 +125,41 @@ def test_nav_document_never_rewritten(tmp_path):
 
 
 def test_output_retitled_and_cover_badged(sample_epub, tmp_path):
-    rewrite = lambda md: "# R\n\n" + " ".join(["word"] * 100)
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
     out, _, _ = optimise(sample_epub, tmp_path, rewrite)
 
     book = epub.load(out)
     assert book.metadata[epub.DC]["title"][0][0] == "Sample Book (Optimised)"
     original_cover = epub.cover_image(epub.load(sample_epub)).get_content()
     assert epub.cover_image(book).get_content() != original_cover
+
+
+def test_anchor_restored_when_token_kept(sample_epub, tmp_path):
+    def rewrite(md, chapter):
+        token = re.search(r"⟦ANCHOR:[^⟧]*⟧", md).group()
+        return f"# R\n\n{token}\n\n" + " ".join(["word"] * 100)
+
+    out, _, results = optimise(sample_epub, tmp_path, rewrite)
+    ch1 = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "ch1")
+    assert '<a id="sec1"></a>' in ch1.html
+    assert "⟦" not in ch1.html
+    assert next(r for r in results if r.item_id == "ch1").detail == ""
+
+
+def test_anchor_fallback_when_dropped(sample_epub, tmp_path):
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
+    out, _, results = optimise(sample_epub, tmp_path, rewrite)
+    ch1_result = next(r for r in results if r.item_id == "ch1")
+    assert ch1_result.status == "rewritten"
+    assert "anchors fell back" in ch1_result.detail
+    ch1 = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "ch1")
+    assert ch1.html.count('<a id="sec1"></a>') == 1
+
+
+def test_referenced_anchors_from_links_and_toc(sample_epub):
+    book = epub.load(sample_epub)
+    refs = pipeline.referenced_anchors(book, epub.chapters(book))
+    assert refs["ch1.xhtml"] == {"sec1"}
 
 
 def test_sane_ratio_bounds():
