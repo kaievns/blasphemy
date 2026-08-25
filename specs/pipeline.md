@@ -11,8 +11,9 @@ information.
 - **Stack:** Python 3.12, pytest, ebooklib + markdownify + markdown.
 - **Claude access:** `claude -p` headless (subscription auth — never `--bare`,
   which forces API-key-only auth). Not the Anthropic SDK.
-- **Default model:** `opus` (Claude Opus 5). Configurable via `--model`
-  (`fable`, `sonnet`, `haiku` or full model names) for quality/quota iteration.
+- **Default model:** `fable` (Claude Fable 5; default since 2026-08-25 —
+  it honors length/budget contracts Opus ignored and reads denser at equal
+  quality). Configurable via `--model`.
 - **Book types:** non-fiction + technical. Rewriting can be aggressive.
 
 ## Flow

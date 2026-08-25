@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("epub", type=Path)
     parser.add_argument("-o", "--output", type=Path)
-    parser.add_argument("--model", default="opus")
+    parser.add_argument("--model", default="fable")
     parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"])
     parser.add_argument("--prompt", type=Path)
     parser.add_argument("--min-words", type=int, default=200)
