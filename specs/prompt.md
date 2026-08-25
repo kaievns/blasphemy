@@ -52,6 +52,12 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
   contract, shrink pass recovered only 4-9%. Split into two passes:
   compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-25: Kai approved J (linear, comprehensible, apparatus on point);
+  asked for more even density/cadence — no mid-flight filler triage. K =
+  J + uniform-density rule (every sentence carries load, one-clause
+  transitions, even paragraphs). Same lengths (84/84/89), visibly tighter
+  prose; promoted to production prompts/body.md. Architecture productionized
+  (apparatus.py, two-pass cli flow).
 - 2026-08-25: H/I/J iteration from Kai's G feedback + weighting answers
   (core-supporting specifics, adaptive apparatus, comprehension-first w/ 75%
   cap). Finding: OBJECTIVE FRAMING DOMINATES NUMBERS — comprehension-first
