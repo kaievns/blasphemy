@@ -39,6 +39,14 @@ def test_rewrite_retries_then_succeeds():
     sleep.assert_called_once()
 
 
+def test_rewrite_error_surfaces_stdout_message():
+    with patch(
+        "subprocess.run", return_value=completed(1, "session limit reached", "")
+    ), patch("time.sleep"):
+        with pytest.raises(claude.ClaudeError, match="session limit reached"):
+            claude.rewrite("chapter", "SYSTEM", retries=1)
+
+
 def test_rewrite_empty_output_is_failure():
     with patch("subprocess.run", return_value=completed(stdout="  ")), patch("time.sleep"):
         with pytest.raises(claude.ClaudeError, match="empty output"):

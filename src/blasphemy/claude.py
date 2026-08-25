@@ -54,5 +54,7 @@ def rewrite(
             continue
         if proc.returncode == 0 and proc.stdout.strip():
             return proc.stdout.strip()
-        last_error = proc.stderr.strip() or "empty output"
+        last_error = (
+            proc.stderr.strip() or proc.stdout.strip()[:200] or "empty output"
+        )
     raise ClaudeError(f"claude failed after {retries + 1} attempts: {last_error}")
