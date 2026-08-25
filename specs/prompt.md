@@ -52,6 +52,14 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
   contract, shrink pass recovered only 4-9%. Split into two passes:
   compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-25: Kai reviewed A/B/C chapter-1 samples of all three books.
+  Verdict: full-rework register (B) wins over compress+patch (A) — more
+  logical, linear, no re-reading needed. Keep Orient. Replace prequestions
+  with a "Watch for" reading briefing. Keep Pause entries but ground them
+  (B's felt half-hallucinated). Fix B's flaws: steam-rolled texture,
+  over-explanation, expanded shorthand ("asynchronous input and output" for
+  "async IO"), too much scaffolding. → version D prompts (experiments/,
+  versions kept as *-d/*-e for comparison, per Kai's standing rule).
 - 2026-08-23: research re-scoped to Asperger-type + medicated ADHD
   (reader-profile.md v2). Layered split: rigid uniform scaffolding, varied
   interest-dense content. Dropped ~25-word sentence cap (choppy prose
