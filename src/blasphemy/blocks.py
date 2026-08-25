@@ -54,6 +54,25 @@ def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
     return html, missing
 
 
+def extract_pre(html: str) -> list[str]:
+    soup = BeautifulSoup(html, "html.parser")
+    return [str(pre) for pre in soup.find_all("pre")]
+
+
+def restore_pre(html: str, originals: list[str]) -> tuple[str, bool]:
+    # swap regenerated fenced code back for the original pre markup
+    # (listing annotations, bolded input, styled spans survive)
+    if not originals:
+        return html, True
+    soup = BeautifulSoup(html, "html.parser")
+    pres = soup.find_all("pre")
+    if len(pres) != len(originals):
+        return html, False
+    for pre, original in zip(pres, originals):
+        pre.replace_with(BeautifulSoup(original, "html.parser"))
+    return str(soup), True
+
+
 def protect_anchors(html: str, ids: set[str]) -> tuple[str, list[str]]:
     if not ids:
         return html, []

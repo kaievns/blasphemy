@@ -20,6 +20,16 @@ def test_markdown_to_html():
     assert "<code>" in html
 
 
+def test_sup_sub_u_survive_roundtrip():
+    html = "<p>x<sup>2</sup> and H<sub>2</sub>O and <u>underlined</u>.</p>"
+    md = convert.html_to_markdown(html)
+    assert "<sup>2</sup>" in md
+    back = convert.markdown_to_html(md)
+    assert "<sup>2</sup>" in back
+    assert "<sub>2</sub>" in back
+    assert "<u>underlined</u>" in back
+
+
 def test_text_survives_roundtrip():
     md = convert.html_to_markdown(HTML)
     html = convert.markdown_to_html(md)

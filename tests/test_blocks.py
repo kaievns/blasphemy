@@ -77,6 +77,32 @@ def test_restore_anchors_tolerates_markdown_escapes():
     assert '<a id="Page_iv"></a>' in html
 
 
+PRE_HTML = '<h1>T</h1><pre><code><b>typed input</b> output <span class="CodeAnnotation">1</span></code></pre><p>x</p>'
+
+
+def test_pre_restored_with_original_markup():
+    originals = blocks.extract_pre(PRE_HTML)
+    assert len(originals) == 1
+    rewritten = "<h1>T</h1><pre><code>typed input output 1</code></pre><p>short</p>"
+    restored, ok = blocks.restore_pre(rewritten, originals)
+    assert ok
+    assert "<b>typed input</b>" in restored
+    assert 'class="CodeAnnotation"' in restored
+
+
+def test_pre_count_mismatch_leaves_output_alone():
+    originals = blocks.extract_pre(PRE_HTML)
+    rewritten = "<p>model merged the code away</p>"
+    restored, ok = blocks.restore_pre(rewritten, originals)
+    assert not ok
+    assert restored == rewritten
+
+
+def test_no_pres_is_ok():
+    restored, ok = blocks.restore_pre("<p>hello</p>", [])
+    assert ok
+
+
 def test_token_survives_markdown_roundtrip():
     html, protected = blocks.protect(MATHML)
     md = convert.html_to_markdown(html)

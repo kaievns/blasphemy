@@ -156,7 +156,7 @@ def test_anchor_restored_when_token_kept(sample_epub, tmp_path):
     ch1 = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "ch1")
     assert '<a id="sec1"></a>' in ch1.html
     assert "⟦" not in ch1.html
-    assert next(r for r in results if r.item_id == "ch1").detail == ""
+    assert "anchors fell back" not in next(r for r in results if r.item_id == "ch1").detail
 
 
 def test_anchor_fallback_when_dropped(sample_epub, tmp_path):
@@ -173,6 +173,24 @@ def test_referenced_anchors_from_links_and_toc(sample_epub):
     book = epub.load(sample_epub)
     refs = pipeline.referenced_anchors(book, epub.chapters(book))
     assert refs["ch1.xhtml"] == {"sec1"}
+
+
+def test_pre_markup_restored_in_output(sample_epub, tmp_path):
+    def rewrite(md, chapter):
+        return "# R\n\n```\nprint('hello')\n```\n\n" + " ".join(["word"] * 100)
+
+    out, _, results = optimise(sample_epub, tmp_path, rewrite)
+    ch1 = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "ch1")
+    assert "<pre><code>print('hello')</code></pre>" in ch1.html
+    ch1_result = next(r for r in results if r.item_id == "ch1")
+    assert "count mismatch" not in ch1_result.detail
+
+
+def test_pre_count_mismatch_reported(sample_epub, tmp_path):
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
+    _, _, results = optimise(sample_epub, tmp_path, rewrite)
+    ch1 = next(r for r in results if r.item_id == "ch1")
+    assert "count mismatch" in ch1.detail
 
 
 def test_sane_ratio_bounds():
