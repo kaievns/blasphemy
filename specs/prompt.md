@@ -52,6 +52,15 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
   contract, shrink pass recovered only 4-9%. Split into two passes:
   compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-25: H/I/J iteration from Kai's G feedback + weighting answers
+  (core-supporting specifics, adaptive apparatus, comprehension-first w/ 75%
+  cap). Finding: OBJECTIVE FRAMING DOMINATES NUMBERS — comprehension-first
+  framing (H) yields ~78-81% bodies and ignores numeric targets entirely
+  (I: adding "aim 55-70%" changed nothing); compression-primary framing with
+  comprehension override (J) restores 73-74% on stats/linux (rust stayed
+  81%). Apparatus discipline fixed by adaptive value/time bar (~275-500w).
+  Formatting preservation (pre-markup restoration, sup/sub/u passthrough)
+  landed in pipeline with tests. H-vs-J judge panel pending (session limit).
 - 2026-08-25: D/E/F/G iteration cycle on ch1 samples (3 books), each
   judged by 6-agent workflow against Kai's five feedback points + 15-fact
   preservation sweep. D: register/grounding fixed, length failed (87-96%).
