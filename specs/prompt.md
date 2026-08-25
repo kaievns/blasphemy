@@ -52,6 +52,14 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
   contract, shrink pass recovered only 4-9%. Split into two passes:
   compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-25: full library regenerated with production pipeline (J body +
+  apparatus + assembly): Stats 90%, HLW 85%, SRE 88%, Rust 77%; total 453k
+  -> 386k (85%). 0 content failures (2 SRE reference appendices correctly
+  kept originals via sanity guard). Production-vs-experiment gap traced to
+  generation variance (prompt byte-identical, looser draws). Known items:
+  tiny chapters can grow (apparatus minimum) -> skip apparatus below ~1,200
+  words; 4 chapters fell back to fenced code (count mismatch); 2 anchor
+  top-fallbacks.
 - 2026-08-25: Kai read K vs J: J reads better — K's density rule reverted;
   J locked as production body prompt. Full-library regeneration with the
   production pipeline; front matter (prefaces/forewords/acknowledgments)
