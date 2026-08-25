@@ -3,10 +3,10 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import claude, epub, pipeline, primer
+from . import apparatus, claude, epub, pipeline, primer
 
 
-def default_prompt(name: str = "compress") -> str:
+def default_prompt(name: str = "body") -> str:
     return (resources.files("blasphemy") / "prompts" / f"{name}.md").read_text()
 
 
@@ -44,8 +44,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{chapter.index:3d}  {chapter.words:6d}w  {chapter.href}  {chapter.title}")
         return 0
 
-    compress_prompt = args.prompt.read_text() if args.prompt else default_prompt("compress")
-    enhance_prompt = default_prompt("enhance")
+    body_prompt = args.prompt.read_text() if args.prompt else default_prompt("body")
+    apparatus_prompt = default_prompt("apparatus")
     out_path = args.output or args.epub.with_suffix(".optimised.epub")
     workdir = pipeline.workdir_for(args.epub)
 
@@ -77,60 +77,20 @@ def main(argv: list[str] | None = None) -> int:
 
     def rewrite(chapter_md: str, chapter: epub.Chapter) -> str:
         words = len(chapter_md.split())
-        low, high = int(words * 0.4), int(words * 0.6)
         contract = (
             f"\n\n[Length contract: the chapter above is {words} words; your "
-            f"compressed chapter must be {low}-{high} words.]"
+            f"rewritten chapter must be {int(words * 0.55)}-{int(words * 0.70)} "
+            f"words. Exceed only where a cut would damage comprehension of the "
+            f"main argument.]"
         )
-        compress_system = with_context(compress_prompt, chapter)
-        compressed = call_claude(chapter_md + contract, compress_system)
-        compressed_words = len(compressed.split())
-        if compressed_words > int(words * 0.7):
-            print(
-                f"  shrink pass: draft {compressed_words}w > contract {low}-{high}w",
-                flush=True,
-            )
-            shrink = (
-                f"{compressed}\n\n[The draft above is {compressed_words} words; "
-                f"the contract is {low}-{high} words. Compress it to contract by "
-                f"dropping and merging passages. Keep all ⟦...⟧ tokens, headings, "
-                f"code blocks, and facts. Output only the compressed chapter as "
-                f"markdown.]"
-            )
-            shrunk = call_claude(shrink, compress_system)
-            if low // 2 <= len(shrunk.split()) < compressed_words:
-                compressed = shrunk
-                compressed_words = len(compressed.split())
-                print(f"  shrink accepted: {compressed_words}w", flush=True)
-            else:
-                print(f"  shrink rejected: {len(shrunk.split())}w", flush=True)
-
-        cap = min(int(compressed_words * 1.3), int(words * 0.75))
-        grow = (
-            f"\n\n[Growth contract: the chapter above is {compressed_words} "
-            f"words; your output with apparatus added must stay under {cap} "
-            f"words total.]"
+        body = call_claude(chapter_md + contract, with_context(body_prompt, chapter))
+        budget = max(220, int(len(body.split()) * 0.10))
+        raw = call_claude(
+            f"{body}\n\n[Apparatus word cap: {budget} words total across all "
+            f"sections — a contract.]",
+            with_context(apparatus_prompt, chapter),
         )
-        enhance_system = with_context(enhance_prompt, chapter)
-        final = call_claude(compressed + grow, enhance_system)
-        final_words = len(final.split())
-        if not (compressed_words * 0.95 <= final_words <= cap):
-            print(f"  apparatus retry: {final_words}w vs cap {cap}w", flush=True)
-            retry = (
-                f"{grow}\n[Your previous output was {final_words} words. Add "
-                f"leaner apparatus: fewer questions, 1-2 sentence answers, "
-                f"shorter Orient.]"
-            )
-            final = call_claude(compressed + retry, enhance_system)
-            final_words = len(final.split())
-            if not (compressed_words * 0.95 <= final_words <= cap):
-                print(
-                    f"  apparatus out of bounds ({final_words}w), keeping "
-                    f"compressed body only",
-                    flush=True,
-                )
-                return compressed
-        return final
+        return apparatus.assemble(chapter_md, body, raw)
 
     def progress(result: pipeline.Result) -> None:
         line = (

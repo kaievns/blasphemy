@@ -49,6 +49,27 @@ surrounding prose without touching the fragile XML. Originals are re-injected
 after conversion back to HTML. A lost token fails the chapter (original kept,
 output evicted from cache into `NNN.failed.md`).
 
+## Rewrite architecture (locked 2026-08-25, after A–K sample iterations)
+
+Two Claude calls per chapter, then mechanical assembly:
+
+1. **Body pass** (`prompts/body.md`): compression-primary re-expression at
+   55–70% with a comprehension override, in the expert register (field
+   shorthand, author texture as word choice, uniform density, sparing
+   deliberate emphasis). Framing matters more than numbers: a
+   comprehension-first framing ignores numeric targets entirely (H/I
+   experiments); compression-primary with override hits ~73–81% bodies.
+2. **Apparatus pass** (`prompts/apparatus.md`): produces ONLY delimited
+   apparatus sections (Orient / Watch for / Pauses / Key points /
+   Check yourself / Answers) under a hard word budget, adaptive to how much
+   genuine argument the chapter has; every item must serve the chapter's
+   main argument.
+3. **Assembly** (`apparatus.py`): deterministic — title preserved, front
+   matter pinned above the body, pauses inserted by verbatim locator with
+   position guards (a skipped pause beats a misplaced one), questions
+   separated from answers. The body cannot be padded or tampered with by
+   the apparatus pass.
+
 ## Cross-chapter consistency (layers, locked 2026-08-23)
 
 1. **Anchor contract** — all intra-book link targets are collected up front;
