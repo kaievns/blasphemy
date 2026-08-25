@@ -52,6 +52,17 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
   contract, shrink pass recovered only 4-9%. Split into two passes:
   compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-25: D/E/F/G iteration cycle on ch1 samples (3 books), each
+  judged by 6-agent workflow against Kai's five feedback points + 15-fact
+  preservation sweep. D: register/grounding fixed, length failed (87-96%).
+  E: cut mandate + enforcement (80-93%); apparatus pass overshot its cap in
+  3/3 books. F: apparatus generated standalone + mechanically inserted into
+  frozen body (80-88%); bodies judged at D texture level, defects moved to
+  assembler. G: assembler fixed (H1, front-matter placement, Q/A separation,
+  pause guards) — 80-86%, structure checks green. Learned: full-rework
+  register floor is ~68-73% body; apparatus adds ~10%; pause-locator
+  protocol still loses pauses when guards reject placements (linux G: 0
+  inserted).
 - 2026-08-25: Kai reviewed A/B/C chapter-1 samples of all three books.
   Verdict: full-rework register (B) wins over compress+patch (A) — more
   logical, linear, no re-reading needed. Keep Orient. Replace prequestions
