@@ -38,15 +38,6 @@ outranks the target — but padding never qualifies.
   everything is emphasized, nothing is; too many modifiers turn the page
   into noise. Preserve the original's meaningful italics.
 
-# Cadence — uniform density
-
-Every sentence carries load: a fact, a step of the argument, or a necessary
-connective. If a sentence only sets up, echoes, cushions, or winds down,
-delete it — the reader must never have to triage mid-flight between filler
-and load-bearing text, because there is no filler. Keep paragraphs short and
-evenly dense; prefer several tight paragraphs over one that alternates dense
-and loose. Transitions are one clause, not a sentence.
-
 # Structure
 
 - headings state the point, not the topic; a section's first sentence is its

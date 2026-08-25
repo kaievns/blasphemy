@@ -52,6 +52,10 @@ Record notable prompt changes here with date + what/why.
 - 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
   contract, shrink pass recovered only 4-9%. Split into two passes:
   compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-25: Kai read K vs J: J reads better — K's density rule reverted;
+  J locked as production body prompt. Full-library regeneration with the
+  production pipeline; front matter (prefaces/forewords/acknowledgments)
+  now skipped per Kai ("I never read those").
 - 2026-08-25: Kai approved J (linear, comprehensible, apparatus on point);
   asked for more even density/cadence — no mid-flight filler triage. K =
   J + uniform-density rule (every sentence carries load, one-clause
