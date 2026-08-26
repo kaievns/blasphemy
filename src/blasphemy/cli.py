@@ -4,7 +4,7 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import apparatus, epub, pipeline, primer, providers
+from . import apparatus, epub, pipeline, primer, providers, report
 
 
 def default_prompt(name: str = "body") -> str:
@@ -90,10 +90,12 @@ def main(argv: list[str] | None = None) -> int:
     apparatus_prompt = default_prompt("apparatus")
     out_path = args.output or args.epub.with_suffix(".optimised.epub")
     workdir = pipeline.workdir_for(args.epub)
-    print(
-        f"provider: {provider.name}  model: "
-        f"{args.model or provider.default_model or '(provider default)'}",
-        flush=True,
+
+    chapters = epub.chapters(epub.load(args.epub))
+    reporter = report.Reporter(len(chapters))
+    reporter.note(
+        f"{args.epub.name} — {len(chapters)} documents · {provider.name} · "
+        f"{args.model or provider.default_model or 'provider default'}"
     )
 
     def call_agent(payload: str, system: str) -> str:
@@ -104,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
 
     book_primer = ""
     if not args.no_primer:
-        chapters = epub.chapters(epub.load(args.epub))
+        reporter.start("building book primer")
         book_primer = primer.build(
             chapters,
             lambda text: call_agent(text, default_prompt("primer")),
@@ -112,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
             force=args.force,
             min_words=args.min_words,
         )
-        print(f"primer ready ({len(book_primer.split())} words)", flush=True)
+        reporter.note(f"primer ready ({len(book_primer.split())} words)")
 
     def with_context(base: str, chapter: epub.Chapter) -> str:
         if book_primer:
@@ -136,24 +138,26 @@ def main(argv: list[str] | None = None) -> int:
         )
         return apparatus.assemble(chapter_md, body, raw)
 
-    def progress(result: pipeline.Result) -> None:
-        line = (
-            f"[{result.index:3d}] {result.status:9s} "
-            f"{result.words_in:6d}w -> {result.words_out:6d}w  {result.title or result.item_id}"
+    try:
+        results = pipeline.optimise(
+            args.epub, out_path, rewrite, workdir,
+            min_words=args.min_words, force=args.force,
+            progress=reporter.finish,
+            starting=lambda chapter: reporter.start(
+                chapter.title or chapter.href
+            ),
+            skip={int(i) for i in args.skip.split(",") if i.strip()},
+            only={int(i) for i in args.only.split(",") if i.strip()} or None,
         )
-        if result.detail:
-            line += f"  ({result.detail})"
-        print(line, flush=True)
+    except KeyboardInterrupt:
+        reporter.close()
+        print("\ninterrupted — rerun to resume from cache", file=sys.stderr)
+        return 130
+    finally:
+        reporter.close()
 
-    results = pipeline.optimise(
-        args.epub, out_path, rewrite, workdir,
-        min_words=args.min_words, force=args.force, progress=progress,
-        skip={int(i) for i in args.skip.split(",") if i.strip()},
-        only={int(i) for i in args.only.split(",") if i.strip()} or None,
-    )
-    failed = sum(1 for r in results if r.status == "failed")
-    print(f"\nwrote {out_path}  ({len(results)} chapters, {failed} failed, cache: {workdir})")
-    return 1 if failed else 0
+    print(reporter.summary(out_path, workdir))
+    return 1 if any(r.status == "failed" for r in results) else 0
 
 
 if __name__ == "__main__":

@@ -69,6 +69,7 @@ def optimise(
     title_suffix: str = " (Optimised)",
     badge_text: str | None = "OPTIMISED",
     progress: Callable[[Result], None] = lambda r: None,
+    starting: Callable[[epub.Chapter], None] = lambda c: None,
 ) -> list[Result]:
     epub_path = Path(epub_path)
     workdir = Path(workdir)
@@ -79,6 +80,7 @@ def optimise(
     refs = referenced_anchors(book, all_chapters)
     results = []
     for chapter in all_chapters:
+        starting(chapter)
         anchored_html, anchor_ids = blocks.protect_anchors(
             chapter.html, refs.get(chapter.href.split("/")[-1], set())
         )
