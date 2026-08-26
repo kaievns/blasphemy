@@ -5,3 +5,4 @@ __pycache__/
 .blasphemy/
 *.epub
 experiments/samples/
+.DS_Store
