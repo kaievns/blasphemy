@@ -41,8 +41,9 @@ Flags: [`docs/usage.md`](docs/usage.md).
 4. Assemble deterministically, then rebuild the epub with original styling,
    code markup, images, anchors, and metadata intact.
 
-Fragile markup (MathML, inline SVG, link anchors) travels through the rewrite as
-opaque tokens and is re-injected afterwards, so it cannot be paraphrased away.
+Fragile markup (code listings, MathML, inline SVG, link anchors) travels through
+the rewrite as opaque tokens and is re-injected afterwards, so it cannot be
+paraphrased away — or mangled by a provider's output rendering.
 Every chapter's input and output is cached under `.blasphemy/`, making runs
 resumable and prompt changes diffable. Design notes live in [`specs/`](specs/),
 operational notes in [`docs/`](docs/).

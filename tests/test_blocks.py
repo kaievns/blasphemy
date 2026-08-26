@@ -80,27 +80,36 @@ def test_restore_anchors_tolerates_markdown_escapes():
 PRE_HTML = '<h1>T</h1><pre><code><b>typed input</b> output <span class="CodeAnnotation">1</span></code></pre><p>x</p>'
 
 
-def test_pre_restored_with_original_markup():
-    originals = blocks.extract_pre(PRE_HTML)
-    assert len(originals) == 1
-    rewritten = "<h1>T</h1><pre><code>typed input output 1</code></pre><p>short</p>"
-    restored, ok = blocks.restore_pre(rewritten, originals)
-    assert ok
+def test_protect_tokenizes_pre_with_first_line_gist():
+    html, protected = blocks.protect(PRE_HTML)
+    assert "<pre>" not in html
+    assert "⟦PRE-0: typed input output 1⟧" in html
+    assert protected["PRE-0"].startswith("<pre>")
+
+
+def test_pre_roundtrip_restores_original_markup_unnested():
+    html, protected = blocks.protect(PRE_HTML)
+    md = convert.html_to_markdown(html)
+    restored, missing = blocks.restore(convert.markdown_to_html(md), protected)
+    assert missing == []
     assert "<b>typed input</b>" in restored
     assert 'class="CodeAnnotation"' in restored
+    # block-level pre must not end up nested inside the token's paragraph
+    assert "<p><pre>" not in restored.replace("\n", "")
 
 
-def test_pre_count_mismatch_leaves_output_alone():
-    originals = blocks.extract_pre(PRE_HTML)
-    rewritten = "<p>model merged the code away</p>"
-    restored, ok = blocks.restore_pre(rewritten, originals)
-    assert not ok
-    assert restored == rewritten
+def test_dropped_pre_token_reported_missing():
+    _, protected = blocks.protect(PRE_HTML)
+    restored, missing = blocks.restore("<p>model merged the code away</p>", protected)
+    assert missing == ["PRE-0"]
+    assert restored == "<p>model merged the code away</p>"
 
 
-def test_no_pres_is_ok():
-    restored, ok = blocks.restore_pre("<p>hello</p>", [])
-    assert ok
+def test_token_ids_do_not_collide_on_shared_prefix():
+    protected = {"PRE-1": "<pre>one</pre>", "PRE-10": "<pre>ten</pre>"}
+    restored, missing = blocks.restore("⟦PRE-10: ten⟧", protected)
+    assert missing == ["PRE-1"]
+    assert "<pre>ten</pre>" in restored
 
 
 def test_token_survives_markdown_roundtrip():

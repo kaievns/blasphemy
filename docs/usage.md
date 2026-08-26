@@ -74,7 +74,10 @@ kiro-cli 2.19:
   is deliberately never used.
 - **No plain-text output mode.** Responses arrive ANSI-styled, open with a
   `> ` reply marker, and may carry a `Credits: … Time: …` footer — all
-  stripped before use.
+  stripped before use. Worse, the renderer *consumes* markdown structure:
+  ``` fences and inline backticks never reach stdout. Code listings survive
+  because they travel as `⟦PRE-n⟧` tokens and never pass through the
+  renderer; inline code degrades to plain text on this provider.
 - **Pin 2.x.** Kiro CLI 3.0 drops the non-TUI path that headless mode uses.
 
 ## Quota exhaustion
