@@ -61,8 +61,10 @@ outranks the target — but padding never qualifies.
 
 # Hard rules
 
-Reproduce every ⟦...⟧ token verbatim in its place. Keep images and
-intra-book links. Non-prose reference material (tables, glossaries, notes)
+Reproduce every ⟦...⟧ token verbatim in its place — tokens stand in for
+figures, images, formulas and diagrams, and the text after the colon says
+what each one holds. Keep them where they belong in the flow. Keep markdown
+images (`![...](...)`) and intra-book links. Non-prose reference material (tables, glossaries, notes)
 is lightly cleaned, never rewritten. No summaries or questions — a later
 pass adds apparatus. Output only the rewritten chapter as markdown, no
 preamble.

@@ -161,6 +161,45 @@ def test_figure_missing_entirely_is_reported():
     assert missing == ["FIGURE-0"]
 
 
+def test_classed_wrapper_is_protected_but_prose_sibling_is_not():
+    source = (
+        '<div class="section"><p><img src="eq.png" class="equation" id="eq7"/></p>'
+        "<p>Prose the model must be able to rewrite.</p></div>"
+    )
+    html, protected = blocks.protect(source)
+    assert list(protected) == ["P-0"]  # the image's own <p>, not the section
+    assert "Prose the model must be able to rewrite." in html
+    restored, missing = blocks.restore(html, protected)
+    assert missing == []
+    assert 'class="equation"' in restored and 'id="eq7"' in restored
+
+
+def test_image_only_wrapper_with_class_is_kept():
+    source = '<div class="mediaobject"><img src="f.png" style="width: 20em"/></div>'
+    html, protected = blocks.protect(source)
+    assert list(protected) == ["DIV-0"]
+    restored, _ = blocks.restore(html, protected)
+    assert 'class="mediaobject"' in restored and "width: 20em" in restored
+
+
+def test_linked_image_keeps_its_anchor():
+    html, protected = blocks.protect('<a href="big.png"><img src="small.png"/></a>')
+    assert list(protected) == ["A-0"]
+    restored, _ = blocks.restore(html, protected)
+    assert '<a href="big.png">' in restored
+
+
+def test_plain_images_stay_markdown():
+    # nothing to preserve beyond src/alt: no token, no failure surface
+    for source in (
+        '<p>Before <img src="icon.png" alt="icon"/> after.</p>',
+        '<div><img src="plain.png" alt="plain"/></div>',
+    ):
+        html, protected = blocks.protect(source)
+        assert protected == {}
+        assert "<img" in html
+
+
 def test_nested_protected_node_inside_figure_not_double_counted():
     html, protected = blocks.protect(
         '<figure class="opener"><img src="a.png"/><svg><rect/></svg></figure>'

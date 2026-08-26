@@ -83,24 +83,31 @@ Two Claude calls per chapter, then mechanical assembly:
    separated from answers. The body cannot be padded or tampered with by
    the apparatus pass.
 
-## Figure wrappers
+## Image wrappers
 
-Images carry their styling on the wrapper, not the tag: No Starch books put
-chapter art in `<figure class="opener">` (CSS floats it left at 20% width).
-The markdown round trip drops the wrapper, so the art re-rendered full size
-between paragraphs. Image-bearing `<figure>` elements are therefore protected
-like MathML and SVG — the whole element travels as a token and is restored
-verbatim, keeping class, `<figcaption>`, and position.
+Markdown expresses only `src` and `alt`, so anything else an image carries is
+lost in the round trip — and publishers put the styling in different places:
 
-Figures wrapping *tables* are deliberately left as markdown so the model can
-still read and compress them; their `<figcaption>` styling is lost as a
-result (caption text survives as prose). Flip `_protectable` in `blocks.py`
-if fidelity there ever matters more than compressibility.
+- No Starch (HLW, Rust): `<figure class="opener">` — CSS floats the chapter
+  art left at 20%; flattened, it rendered full size between paragraphs.
+- DocBook (Statistics): `<div class="mediaobject">` around an empty `<a id>`
+  marker and the image; one image carries an inline `style` width.
+- Pandoc (SRE): no wrapper, `class`/`id` sit on the `<img>` itself.
 
-If a figure token is missing from the output, the wrapper is re-applied by
-matching the image `src` before the chapter is failed. That rescues rewrites
-cached before figures were protected, so fixing an already-processed book is
-a rebuild from cache with no model calls.
+So protection targets the *smallest element that carries the styling*: climb
+from each image through wrappers that hold it alone (no text, no second
+image), and protect that. Figures are always taken whole so `<figcaption>`
+travels with them. An image with nothing beyond `src`/`alt` and no classed
+wrapper is left as markdown — no token, no failure surface.
+
+A figure containing no image (No Starch wraps tables this way) stays markdown
+so the model can still read and compress the table; its `<figcaption>`
+styling is the price, and the caption text survives as prose.
+
+If a token is missing from the output, the wrapper is re-applied by matching
+the image `src` before the chapter is failed. That rescues rewrites cached
+before protection existed, so repairing an already-processed book is a
+rebuild from cache with no model calls.
 
 ## Cross-chapter consistency (layers, locked 2026-08-23)
 

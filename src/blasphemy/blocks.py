@@ -2,19 +2,55 @@ import re
 
 from bs4 import BeautifulSoup
 
-PROTECTED_TAGS = ["math", "svg", "figure"]
+ALWAYS_PROTECTED = ["math", "svg"]
 GIST_MAX = 60
 # a lone block element inside <p> is invalid; unwrap it after restoring
-BLOCK_LEVEL = ("figure", "table", "pre", "div")
+BLOCK_LEVEL = ("figure", "table", "pre", "div", "p")
+# wrappers an image's styling can hang off
+IMAGE_WRAPPERS = ("figure", "div", "p", "span", "a")
+PLAIN_IMG_ATTRS = {"src", "alt"}
 
 
-def _protectable(node) -> bool:
-    # Figures are protected only when they carry an image, because that is
-    # where the wrapper's styling lives (figure.opener floats the chapter art
-    # at 20% width; flattened to a bare <img> it renders full size). Figures
-    # wrapping tables stay markdown so the model can still read and compress
-    # them.
-    return node.name != "figure" or node.find("img") is not None
+def _image_only(node, image) -> bool:
+    """True when `node` holds this image and no text or second image.
+
+    Empty markers are tolerated: DocBook wraps images as
+    `<div class="mediaobject"><a id="med_id1"></a><img/></div>`.
+    """
+    if node.get_text(strip=True):
+        return False
+    images = node.find_all("img")
+    return len(images) == 1 and images[0] is image
+
+
+def _wrap_target(image):
+    """Smallest element carrying this image's styling.
+
+    Markdown expresses `src` and `alt` and nothing else, so whatever holds the
+    styling — a wrapper class or an attribute on the image — must travel as a
+    token. Climb only through wrappers holding the image alone, so a section
+    div full of prose is never swallowed; figures are taken whole so their
+    <figcaption> comes along. Figures without an image stay markdown, keeping
+    table figures readable and compressible by the model.
+    """
+    node = image
+    while node.parent is not None:
+        parent = node.parent
+        if parent.name == "figure":
+            return parent
+        if parent.name in IMAGE_WRAPPERS and _image_only(parent, image):
+            node = parent
+            continue
+        break
+    return node
+
+
+def _worth_protecting(target, image) -> bool:
+    if target.name == "figure":
+        return True
+    if set(image.attrs) - PLAIN_IMG_ATTRS:
+        return True  # class/id/style on the image itself
+    return target is not image and bool(target.attrs)  # classed wrapper
 
 
 def _token_re(kind: str, block_id: int) -> re.Pattern:
@@ -29,13 +65,12 @@ def _gist(node) -> str:
             found = node.find(tag)
             if found and found.get_text(strip=True):
                 return found.get_text(strip=True)[:GIST_MAX]
-    if node.name == "figure":
-        caption = node.find("figcaption")
-        if caption and caption.get_text(" ", strip=True):
-            return caption.get_text(" ", strip=True)[:GIST_MAX]
-        image = node.find("img")
-        alt = (image.get("alt") or "").strip() if image else ""
-        return (alt or "image")[:GIST_MAX]
+    caption = node.find("figcaption") if node.name != "img" else None
+    if caption and caption.get_text(" ", strip=True):
+        return caption.get_text(" ", strip=True)[:GIST_MAX]
+    image = node if node.name == "img" else node.find("img")
+    if image is not None:
+        return ((image.get("alt") or "").strip() or "image")[:GIST_MAX]
     text = node.get_text(" ", strip=True)
     text = re.sub(r"[⟦⟧\s]+", lambda m: " " if m.group().isspace() else "", text)
     return text[:GIST_MAX] or "diagram"
@@ -43,15 +78,20 @@ def _gist(node) -> str:
 
 def protect(html: str) -> tuple[str, dict[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
+    wanted = {id(node): node for node in soup.find_all(ALWAYS_PROTECTED)}
+    for image in soup.find_all("img"):
+        target = _wrap_target(image)
+        if _worth_protecting(target, image):
+            wanted[id(target)] = target
+
     blocks = {}
     protected_ids: set[int] = set()
-    for block_id, node in enumerate(soup.find_all(PROTECTED_TAGS)):
-        if not _protectable(node):
+    for node in soup.find_all(True):  # document order keeps token ids readable
+        if id(node) not in wanted:
             continue
         if any(id(parent) in protected_ids for parent in node.parents):
             continue
-        kind = node.name.upper()
-        key = f"{kind}-{block_id}"
+        key = f"{node.name.upper()}-{len(blocks)}"
         blocks[key] = str(node)
         protected_ids.add(id(node))
         node.replace_with(f"⟦{key}: {_gist(node)}⟧")
