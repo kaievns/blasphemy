@@ -11,8 +11,10 @@ Retune the prompts in `src/blasphemy/prompts/` for anyone else.
 ## Requirements
 
 - Python 3.12+
-- One agent CLI, logged in: [Claude Code](https://claude.com/claude-code)
-  (`claude`) or [Kiro](https://kiro.dev) (`kiro`)
+- One agent CLI, authenticated:
+  - [Claude Code](https://claude.com/claude-code) — `claude`, subscription login
+  - [Kiro CLI](https://kiro.dev) 2.x — `kiro-cli`, headless needs `KIRO_API_KEY`
+    (paid plan); see [`docs/usage.md`](docs/usage.md#providers)
 
 ## Quickstart
 

@@ -29,9 +29,44 @@ def test_default_model_applied_when_unset():
     assert cmd[cmd.index("--model") + 1] == providers.CLAUDE.default_model
 
 
+def test_kiro_call_shape():
+    cmd, stdin = providers.build_call(providers.KIRO, "CHAPTER", "SYSTEM")
+    assert cmd[0].endswith("kiro-cli")  # bare `kiro` opens the IDE
+    assert cmd[1:3] == ["chat", "--no-interactive"]
+    assert "--trust-tools=" in cmd  # trust nothing; never --trust-all-tools
+    assert "--trust-all-tools" not in cmd
+    # no --model unless asked: kiro's own default model stands
+    assert "--model" not in cmd
+    # kiro has no system-prompt flag, and only reads stdin with no argv prompt
+    assert stdin.startswith("SYSTEM") and stdin.endswith("CHAPTER")
+    assert cmd[-1] != stdin
+
+
 def test_effort_omitted_when_provider_lacks_flag():
-    cmd, _ = providers.build_call(providers.KIRO, "CHAPTER", "SYSTEM", effort="high")
+    provider = providers.Provider(name="x", binary="x", default_model="")
+    cmd, _ = providers.build_call(provider, "CHAPTER", "SYSTEM", effort="high")
     assert "--effort" not in cmd
+
+
+def test_strip_chrome_removes_ansi_and_credits_footer():
+    raw = "\x1b[1mAnswer\x1b[0m text\n\n▸ Credits: 0.39 • Time: 22s\n"
+    assert providers.strip_chrome(raw) == "Answer text"
+
+
+def test_kiro_output_is_sanitised_and_env_applied():
+    noisy = completed(stdout="\x1b[32mclean\x1b[0m\n▸ Credits: 0.4 • Time: 3s\n")
+    with patch("subprocess.run", return_value=noisy) as run:
+        assert providers.rewrite(
+            "chapter", "SYSTEM", provider=providers.KIRO
+        ) == "clean"
+    env = run.call_args.kwargs["env"]
+    assert env["NO_COLOR"] == "1" and env["KIRO_ASCII_MODE"] == "1"
+
+
+def test_claude_run_inherits_env_unchanged():
+    with patch("subprocess.run", return_value=completed()) as run:
+        providers.rewrite("chapter", "SYSTEM")
+    assert run.call_args.kwargs["env"] is None
 
 
 def test_system_prompt_folded_into_stdin_without_flag():

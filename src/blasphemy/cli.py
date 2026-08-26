@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from importlib import resources
 from pathlib import Path
@@ -48,10 +49,15 @@ def build_parser() -> argparse.ArgumentParser:
 def check_providers() -> int:
     for name in providers.ORDER:
         provider = providers.REGISTRY[name]
-        binary = providers.binary_for(provider)
         found = providers.available(provider)
         model = provider.default_model or "(provider default)"
-        print(f"{name:8s} {'ok' if found else 'missing':8s} {binary}  model: {model}")
+        line = (
+            f"{name:8s} {'ok' if found else 'missing':8s} "
+            f"{providers.binary_for(provider)}  model: {model}"
+        )
+        if found and provider.auth_env and not os.environ.get(provider.auth_env):
+            line += f"  [{provider.auth_env} unset — headless calls will fail]"
+        print(line)
     return 0 if any(providers.available(p) for p in providers.REGISTRY.values()) else 1
 
 
