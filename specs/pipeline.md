@@ -83,6 +83,25 @@ Two Claude calls per chapter, then mechanical assembly:
    separated from answers. The body cannot be padded or tampered with by
    the apparatus pass.
 
+## Figure wrappers
+
+Images carry their styling on the wrapper, not the tag: No Starch books put
+chapter art in `<figure class="opener">` (CSS floats it left at 20% width).
+The markdown round trip drops the wrapper, so the art re-rendered full size
+between paragraphs. Image-bearing `<figure>` elements are therefore protected
+like MathML and SVG — the whole element travels as a token and is restored
+verbatim, keeping class, `<figcaption>`, and position.
+
+Figures wrapping *tables* are deliberately left as markdown so the model can
+still read and compress them; their `<figcaption>` styling is lost as a
+result (caption text survives as prose). Flip `_protectable` in `blocks.py`
+if fidelity there ever matters more than compressibility.
+
+If a figure token is missing from the output, the wrapper is re-applied by
+matching the image `src` before the chapter is failed. That rescues rewrites
+cached before figures were protected, so fixing an already-processed book is
+a rebuild from cache with no model calls.
+
 ## Cross-chapter consistency (layers, locked 2026-08-23)
 
 1. **Anchor contract** — all intra-book link targets are collected up front;

@@ -2,8 +2,19 @@ import re
 
 from bs4 import BeautifulSoup
 
-PROTECTED_TAGS = ["math", "svg"]
+PROTECTED_TAGS = ["math", "svg", "figure"]
 GIST_MAX = 60
+# a lone block element inside <p> is invalid; unwrap it after restoring
+BLOCK_LEVEL = ("figure", "table", "pre", "div")
+
+
+def _protectable(node) -> bool:
+    # Figures are protected only when they carry an image, because that is
+    # where the wrapper's styling lives (figure.opener floats the chapter art
+    # at 20% width; flattened to a bare <img> it renders full size). Figures
+    # wrapping tables stay markdown so the model can still read and compress
+    # them.
+    return node.name != "figure" or node.find("img") is not None
 
 
 def _token_re(kind: str, block_id: int) -> re.Pattern:
@@ -18,6 +29,13 @@ def _gist(node) -> str:
             found = node.find(tag)
             if found and found.get_text(strip=True):
                 return found.get_text(strip=True)[:GIST_MAX]
+    if node.name == "figure":
+        caption = node.find("figcaption")
+        if caption and caption.get_text(" ", strip=True):
+            return caption.get_text(" ", strip=True)[:GIST_MAX]
+        image = node.find("img")
+        alt = (image.get("alt") or "").strip() if image else ""
+        return (alt or "image")[:GIST_MAX]
     text = node.get_text(" ", strip=True)
     text = re.sub(r"[⟦⟧\s]+", lambda m: " " if m.group().isspace() else "", text)
     return text[:GIST_MAX] or "diagram"
@@ -26,12 +44,16 @@ def _gist(node) -> str:
 def protect(html: str) -> tuple[str, dict[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
     blocks = {}
+    protected_ids: set[int] = set()
     for block_id, node in enumerate(soup.find_all(PROTECTED_TAGS)):
-        if node.find_parent(PROTECTED_TAGS):
+        if not _protectable(node):
+            continue
+        if any(id(parent) in protected_ids for parent in node.parents):
             continue
         kind = node.name.upper()
         key = f"{kind}-{block_id}"
         blocks[key] = str(node)
+        protected_ids.add(id(node))
         node.replace_with(f"⟦{key}: {_gist(node)}⟧")
     return str(soup), blocks
 
@@ -41,6 +63,46 @@ def _unescape_tokens(html: str) -> str:
     return re.sub(r"⟦[^⟦⟧]*⟧", lambda m: m.group().replace("\\", ""), html)
 
 
+def _image_src(fragment: str) -> str | None:
+    match = re.search(r'<img[^>]+src="([^"]+)"', fragment)
+    return match.group(1) if match else None
+
+
+def _rewrap_image(html: str, original: str) -> tuple[str, bool]:
+    """Re-apply a dropped figure wrapper to its image, matched by src.
+
+    Rescues output written before figures were protected (cached rewrites)
+    and any run where the model drops the token but keeps the markdown image.
+    """
+    src = _image_src(original)
+    if not src:
+        return html, False
+    soup = BeautifulSoup(html, "html.parser")
+    for image in soup.find_all("img"):
+        if image.get("src") != src:
+            continue
+        target = image
+        parent = image.parent
+        if parent and parent.name == "p" and not parent.get_text(strip=True):
+            target = parent
+        target.replace_with(BeautifulSoup(original, "html.parser"))
+        return str(soup), True
+    return html, False
+
+
+def _unwrap_block_paragraphs(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    for para in soup.find_all("p"):
+        children = [
+            child
+            for child in para.children
+            if getattr(child, "name", None) or str(child).strip()
+        ]
+        if len(children) == 1 and getattr(children[0], "name", None) in BLOCK_LEVEL:
+            para.replace_with(children[0])
+    return str(soup)
+
+
 def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
     html = _unescape_tokens(html)
     missing = []
@@ -48,10 +110,14 @@ def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
         kind, block_id = key.rsplit("-", 1)
         pattern = _token_re(kind, int(block_id))
         html, count = pattern.subn(original.replace("\\", r"\\"), html, count=1)
-        if count == 0:
-            missing.append(key)
-        else:
+        if count:
             html = pattern.sub("", html)
+            continue
+        html, rewrapped = _rewrap_image(html, original)
+        if not rewrapped:
+            missing.append(key)
+    if blocks:
+        html = _unwrap_block_paragraphs(html)
     return html, missing
 
 

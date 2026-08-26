@@ -103,6 +103,72 @@ def test_no_pres_is_ok():
     assert ok
 
 
+OPENER = (
+    '<figure class="opener"><img src="art/chapterart.png" alt=""/></figure>'
+    '<p class="ChapterIntro">At first glance...</p>'
+)
+
+
+def test_image_figure_is_protected_with_its_wrapper():
+    html, protected = blocks.protect(OPENER)
+    assert "⟦FIGURE-0: image⟧" in html
+    assert "<figure" not in html
+    assert protected["FIGURE-0"].startswith('<figure class="opener">')
+
+
+def test_figure_gist_prefers_caption_then_alt():
+    html, _ = blocks.protect(
+        '<figure><figcaption>Figure 1-2: The kernel</figcaption>'
+        '<img src="a.png"/></figure>'
+    )
+    assert "⟦FIGURE-0: Figure 1-2: The kernel⟧" in html
+    html, _ = blocks.protect('<figure><img src="a.png" alt="a penguin"/></figure>')
+    assert "⟦FIGURE-0: a penguin⟧" in html
+
+
+def test_table_figures_stay_visible_to_the_model():
+    source = (
+        '<figure><figcaption class="TableTitle">Table 2-1</figcaption>'
+        "<table><tr><td>x</td></tr></table></figure>"
+    )
+    html, protected = blocks.protect(source)
+    assert protected == {}
+    assert "<table>" in html
+
+
+def test_figure_survives_round_trip_with_class():
+    html, protected = blocks.protect(OPENER)
+    md = convert.html_to_markdown(html)
+    restored, missing = blocks.restore(convert.markdown_to_html(md), protected)
+    assert missing == []
+    assert '<figure class="opener">' in restored
+    # a block element must not be left wrapped in <p>
+    assert "<p><figure" not in restored.replace("\n", "")
+
+
+def test_dropped_figure_token_is_rewrapped_by_src():
+    _, protected = blocks.protect(OPENER)
+    output = '<p><img alt="" src="art/chapterart.png"/></p><p>text</p>'
+    restored, missing = blocks.restore(output, protected)
+    assert missing == []
+    assert '<figure class="opener">' in restored
+    assert "<p><img" not in restored
+
+
+def test_figure_missing_entirely_is_reported():
+    _, protected = blocks.protect(OPENER)
+    restored, missing = blocks.restore("<p>no image at all</p>", protected)
+    assert missing == ["FIGURE-0"]
+
+
+def test_nested_protected_node_inside_figure_not_double_counted():
+    html, protected = blocks.protect(
+        '<figure class="opener"><img src="a.png"/><svg><rect/></svg></figure>'
+    )
+    assert list(protected) == ["FIGURE-0"]
+    assert "<svg>" in protected["FIGURE-0"]
+
+
 def test_token_ids_do_not_collide_on_shared_prefix():
     protected = {"MATH-1": "<math>one</math>", "MATH-10": "<math>ten</math>"}
     restored, missing = blocks.restore("⟦MATH-10: ten⟧", protected)
