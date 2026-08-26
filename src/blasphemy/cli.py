@@ -20,9 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-o", "--output", type=Path)
     parser.add_argument(
         "--provider",
-        default="auto",
-        choices=["auto", *providers.REGISTRY],
-        help="agent CLI to drive (default: first one installed)",
+        default=providers.DEFAULT.name,
+        choices=list(providers.REGISTRY),
+        help=f"agent CLI to drive (default: {providers.DEFAULT.name})",
     )
     parser.add_argument(
         "--check-providers",
@@ -47,8 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def check_providers() -> int:
-    for name in providers.ORDER:
-        provider = providers.REGISTRY[name]
+    for name, provider in providers.REGISTRY.items():
         found = providers.available(provider)
         model = provider.default_model or "(provider default)"
         line = (
@@ -77,10 +76,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{chapter.index:3d}  {chapter.words:6d}w  {chapter.href}  {chapter.title}")
         return 0
 
-    try:
-        provider = providers.resolve(args.provider)
-    except providers.ProviderError as error:
-        print(f"error: {error}", file=sys.stderr)
+    provider = providers.resolve(args.provider)
+    if not providers.available(provider):
+        other = next(n for n in providers.REGISTRY if n != provider.name)
+        print(
+            f"error: {providers.binary_for(provider)} not found — install it, set "
+            f"BLASPHEMY_{provider.name.upper()}_BIN, or use --provider {other}",
+            file=sys.stderr,
+        )
         return 1
 
     body_prompt = args.prompt.read_text() if args.prompt else default_prompt("body")

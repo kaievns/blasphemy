@@ -72,7 +72,7 @@ KIRO = Provider(
 )
 
 REGISTRY = {provider.name: provider for provider in (CLAUDE, KIRO)}
-ORDER = ("claude", "kiro")
+DEFAULT = CLAUDE
 
 
 def binary_for(provider: Provider) -> str:
@@ -93,15 +93,10 @@ def available(provider: Provider) -> bool:
     return shutil.which(binary_for(provider)) is not None
 
 
-def resolve(name: str = "auto") -> Provider:
-    if name != "auto":
-        if name not in REGISTRY:
-            raise ProviderError(f"unknown provider: {name}")
-        return REGISTRY[name]
-    for candidate in ORDER:
-        if available(REGISTRY[candidate]):
-            return REGISTRY[candidate]
-    raise ProviderError(f"no agent CLI found on PATH (looked for: {', '.join(ORDER)})")
+def resolve(name: str) -> Provider:
+    if name not in REGISTRY:
+        raise ProviderError(f"unknown provider: {name}")
+    return REGISTRY[name]
 
 
 def build_call(

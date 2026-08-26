@@ -114,16 +114,8 @@ def test_resolve_named_and_unknown():
         providers.resolve("gpt")
 
 
-def test_resolve_auto_prefers_installed(monkeypatch):
-    monkeypatch.setattr(providers, "FALLBACK_DIRS", ())
-    monkeypatch.setattr(
-        providers.shutil, "which", lambda binary: None if binary == "claude" else "/x"
-    )
-    assert providers.resolve("auto") is providers.KIRO
-
-    monkeypatch.setattr(providers.shutil, "which", lambda binary: None)
-    with pytest.raises(providers.ProviderError, match="no agent CLI"):
-        providers.resolve("auto")
+def test_claude_is_the_default_provider():
+    assert providers.DEFAULT is providers.CLAUDE
 
 
 def test_rewrite_success_passes_stdin():

@@ -25,7 +25,7 @@ Equivalent direct calls:
 .venv/bin/blasphemy book.epub --list
 ```
 
-Key flags: `--provider` (`auto`|`claude`|`kiro`), `--model` (provider-specific,
+Key flags: `--provider` (`claude` default, or `kiro`), `--model` (provider-specific,
 defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
 `--effort` (claude only), `--timeout` seconds per call (default 1200),
@@ -36,14 +36,15 @@ cache, so re-running after a quota exhaustion only redoes what is missing.
 
 ## Providers
 
-The rewrite calls shell out to an agent CLI. `--provider auto` picks the first
-one installed, in the order `claude`, `kiro`.
+The rewrite calls shell out to an agent CLI: `claude` unless you pass
+`--provider kiro`. If the chosen binary is missing, the run stops immediately
+with the binary name and the alternative, rather than failing mid-book.
 
 Binaries are located via `PATH`, then `~/.local/bin`, `/usr/local/bin`,
 `/opt/homebrew/bin` — cron, `make`, and `nohup` shells often lack the login
 PATH. Override explicitly with `BLASPHEMY_CLAUDE_BIN` / `BLASPHEMY_KIRO_BIN`.
 
-### claude
+### claude (default)
 
 `claude -p` with the system prompt on `--system-prompt`, content on stdin,
 tools disabled. Models: `fable` (default), `opus`, `sonnet`, `haiku`.

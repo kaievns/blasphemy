@@ -1,10 +1,17 @@
 from unittest.mock import patch
 
+import pytest
+
 from blasphemy import cli, providers
 
 
-def test_check_providers_reports_each(monkeypatch, capsys):
-    monkeypatch.setattr(providers.shutil, "which", lambda binary: "/x")
+@pytest.fixture(autouse=True)
+def providers_installed(monkeypatch):
+    # keep the suite independent of which agent CLIs this machine has
+    monkeypatch.setattr(providers.shutil, "which", lambda binary: f"/usr/bin/{binary}")
+
+
+def test_check_providers_reports_each(capsys):
     assert cli.main(["--check-providers"]) == 0
     out = capsys.readouterr().out
     assert "claude" in out and "kiro" in out
@@ -12,7 +19,6 @@ def test_check_providers_reports_each(monkeypatch, capsys):
 
 
 def test_check_providers_flags_missing_auth(monkeypatch, capsys):
-    monkeypatch.setattr(providers.shutil, "which", lambda binary: "/x")
     monkeypatch.delenv("KIRO_API_KEY", raising=False)
     cli.main(["--check-providers"])
     assert "KIRO_API_KEY unset" in capsys.readouterr().out
@@ -32,10 +38,21 @@ def test_epub_required_without_check():
     assert cli.main([]) == 2
 
 
-def test_unresolvable_provider_reports_error(sample_epub, monkeypatch, capsys):
+def test_missing_binary_reports_error_and_alternative(sample_epub, monkeypatch, capsys):
+    monkeypatch.setattr(providers, "FALLBACK_DIRS", ())
     monkeypatch.setattr(providers.shutil, "which", lambda binary: None)
     assert cli.main([str(sample_epub)]) == 1
-    assert "no agent CLI" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "claude not found" in err
+    assert "--provider kiro" in err
+
+
+def test_defaults_to_claude(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    body = "# R\n\n" + " ".join(["word"] * 100)
+    with patch("blasphemy.providers.rewrite", return_value=body) as rewrite:
+        cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"])
+    assert rewrite.call_args.kwargs["provider"] is providers.CLAUDE
 
 
 def test_provider_selection_reaches_rewrite(sample_epub, tmp_path, monkeypatch):

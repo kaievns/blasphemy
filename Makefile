@@ -2,7 +2,7 @@ VENV ?= .venv
 PY := $(VENV)/bin/python
 BLASPHEMY := $(VENV)/bin/blasphemy
 BOOK ?=
-PROVIDER ?= auto
+PROVIDER ?= claude
 ARGS ?=
 
 .DEFAULT_GOAL := help
