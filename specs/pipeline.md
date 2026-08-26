@@ -100,6 +100,16 @@ image), and protect that. Figures are always taken whole so `<figcaption>`
 travels with them. An image with nothing beyond `src`/`alt` and no classed
 wrapper is left as markdown — no token, no failure surface.
 
+Order matters: blocks are protected *before* anchors. An `id` inside a
+figure travels with the figure, so tokenising it separately would restore the
+same id twice — invalid HTML, and a link target the reader's device may
+resolve to the wrong copy.
+
+After restoring, a paragraph adjacent to a figure whose text repeats the
+`<figcaption>` is dropped: rewrites cached before figures were protected kept
+the caption as prose, so the reader saw it twice. Any token still unresolved
+at the end of the chain is stripped rather than shipped.
+
 A figure containing no image (No Starch wraps tables this way) stays markdown
 so the model can still read and compress the table; its `<figcaption>`
 styling is the price, and the caption text survives as prose.

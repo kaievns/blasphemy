@@ -81,10 +81,12 @@ def optimise(
     results = []
     for chapter in all_chapters:
         starting(chapter)
-        anchored_html, anchor_ids = blocks.protect_anchors(
-            chapter.html, refs.get(chapter.href.split("/")[-1], set())
+        # blocks first: an anchor inside a protected figure travels with it,
+        # so tokenising it too would restore the same id twice
+        block_html, protected = blocks.protect(chapter.html)
+        protected_html, anchor_ids = blocks.protect_anchors(
+            block_html, refs.get(chapter.href.split("/")[-1], set())
         )
-        protected_html, protected = blocks.protect(anchored_html)
         source_md = convert.html_to_markdown(protected_html)
         source_file = workdir / f"{chapter.index:03d}.src.md"
         output_file = workdir / f"{chapter.index:03d}.md"
@@ -136,6 +138,9 @@ def optimise(
                     if not pre_ok:
                         note = "code blocks left fenced (count mismatch)"
                         detail = f"{detail}; {note}" if detail else note
+                    # tokens from a cache written by an older pipeline are
+                    # unrestorable here; never ship them to the reader
+                    html = blocks.strip_tokens(html)
                     epub.replace_content(book, chapter.item_id, html)
             result = Result(
                 chapter.index, chapter.item_id, chapter.title, status,

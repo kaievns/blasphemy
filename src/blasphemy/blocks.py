@@ -130,6 +130,44 @@ def _rewrap_image(html: str, original: str) -> tuple[str, bool]:
     return html, False
 
 
+ANY_TOKEN = re.compile(r"⟦[^⟦⟧]*⟧")
+
+
+def strip_tokens(html: str) -> str:
+    """Drop tokens nothing could restore (e.g. a cache from an older run)."""
+    return ANY_TOKEN.sub("", html)
+
+
+def _caption_key(text: str) -> str:
+    # whitespace-free: inline markup makes get_text insert stray spaces
+    # ("Figure 1-1 : x" from <a>Figure 1-1</a>: x)
+    return "".join(ANY_TOKEN.sub("", text).split()).casefold()
+
+
+def _drop_duplicate_captions(html: str) -> str:
+    """Remove a caption the model also wrote as prose beside its figure.
+
+    A rewrite made before figures were protected keeps the caption as a
+    paragraph; restoring the figure brings the original <figcaption> back and
+    the reader sees it twice.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    for figure in soup.find_all("figure"):
+        caption = figure.find("figcaption")
+        if caption is None:
+            continue
+        key = _caption_key(caption.get_text(" ", strip=True))
+        if not key:
+            continue
+        for sibling in (figure.find_next_sibling(), figure.find_previous_sibling()):
+            if sibling is None or sibling.name not in ("p", "div"):
+                continue
+            if _caption_key(sibling.get_text(" ", strip=True)) == key:
+                sibling.decompose()
+                break
+    return str(soup)
+
+
 def _unwrap_block_paragraphs(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     for para in soup.find_all("p"):
@@ -157,7 +195,7 @@ def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
         if not rewrapped:
             missing.append(key)
     if blocks:
-        html = _unwrap_block_paragraphs(html)
+        html = _drop_duplicate_captions(_unwrap_block_paragraphs(html))
     return html, missing
 
 

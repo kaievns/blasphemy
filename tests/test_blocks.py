@@ -161,6 +161,47 @@ def test_figure_missing_entirely_is_reported():
     assert missing == ["FIGURE-0"]
 
 
+CAPTIONED = (
+    '<figure><img src="f01.png" alt="f01"/>'
+    '<figcaption><p><a id="figure1-1">Figure 1-1</a>: System organization</p>'
+    "</figcaption></figure>"
+)
+
+
+def test_prose_caption_beside_restored_figure_is_dropped():
+    _, protected = blocks.protect(CAPTIONED)
+    # shape of a rewrite cached before figures were protected
+    output = (
+        '<p><img alt="f01" src="f01.png"/></p>'
+        "<p>Figure 1-1: System organization</p><p>Body text.</p>"
+    )
+    restored, missing = blocks.restore(output, protected)
+    assert missing == []
+    assert restored.count("Figure 1-1") == 1
+    assert "<figcaption>" in restored
+    assert "Body text." in restored
+
+
+def test_caption_kept_when_no_duplicate_exists():
+    _, protected = blocks.protect(CAPTIONED)
+    restored, _ = blocks.restore('<p><img alt="f01" src="f01.png"/></p>', protected)
+    assert restored.count("Figure 1-1") == 1
+    assert "<figcaption>" in restored
+
+
+def test_anchor_inside_protected_figure_is_not_tokenised_twice():
+    # blocks first, anchors second: the id travels inside the figure
+    block_html, protected = blocks.protect(CAPTIONED)
+    _, anchor_ids = blocks.protect_anchors(block_html, {"figure1-1"})
+    assert anchor_ids == []
+    restored, _ = blocks.restore(block_html, protected)
+    assert restored.count('id="figure1-1"') == 1
+
+
+def test_strip_tokens_removes_unrestorable_leftovers():
+    assert blocks.strip_tokens("a ⟦ANCHOR:x⟧b ⟦FIGURE-9: y⟧c") == "a b c"
+
+
 def test_classed_wrapper_is_protected_but_prose_sibling_is_not():
     source = (
         '<div class="section"><p><img src="eq.png" class="equation" id="eq7"/></p>'
