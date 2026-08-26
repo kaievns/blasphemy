@@ -12,11 +12,14 @@ FALLBACK_DIRS = ("~/.local/bin", "/usr/local/bin", "/opt/homebrew/bin")
 
 ANSI = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 KIRO_FOOTER = re.compile(r"^[\s▸>]*Credits:.*?Time:.*$", re.M)
+KIRO_MARKER = re.compile(r"\A> ")  # reply marker; later `> ` are blockquotes
 
 
 def strip_chrome(text: str) -> str:
-    # kiro renders markdown with ANSI and appends a credits/time footer
-    return KIRO_FOOTER.sub("", ANSI.sub("", text)).strip()
+    # kiro renders markdown with ANSI, opens the reply with a `> ` marker,
+    # and may append a credits/time footer
+    text = KIRO_FOOTER.sub("", ANSI.sub("", text)).strip()
+    return KIRO_MARKER.sub("", text, count=1).strip()
 
 
 class ProviderError(Exception):
@@ -28,13 +31,13 @@ class Provider:
     name: str
     binary: str
     default_model: str
+    default_effort: str | None = None
     base_args: tuple[str, ...] = ()
     model_flag: str | None = None
     effort_flag: str | None = None
     system_flag: str | None = None  # None: system prompt is folded into stdin
     prompt_as_arg: bool = False  # True: user text is the last argv, not stdin
     env: tuple[tuple[str, str], ...] = ()
-    auth_env: str | None = None
     sanitize: Callable[[str], str] = field(default=str.strip)
 
 
@@ -55,19 +58,23 @@ CLAUDE = Provider(
     system_flag="--system-prompt",
 )
 
-# kiro-cli 2.x: `kiro` opens the IDE. No system-prompt, tools, or output-format
-# flags — the system prompt rides on stdin, and stdin is only read when no
-# positional prompt is given. `--trust-tools=` trusts nothing, so an attempted
-# tool call aborts loudly instead of being auto-approved.
+# kiro-cli 2.x (verified on 2.19): `kiro` opens the IDE. No system-prompt,
+# tools, or output-format flags — the system prompt rides on stdin, and stdin
+# is only read when no positional prompt is given. `--trust-tools=` trusts
+# nothing, so an attempted tool call aborts loudly instead of being
+# auto-approved. No `--agent`: the profile configured as chat.defaultAgent
+# applies. Auth is the `kiro-cli login` session (its token store is separate
+# from the Kiro IDE's) — check with `kiro-cli whoami`; logged out, a headless
+# call blocks on a browser login instead of failing fast.
 KIRO = Provider(
     name="kiro",
     binary="kiro-cli",
-    default_model="",  # defer to `kiro-cli settings chat.defaultModel`
+    default_model="claude-fable-5",
+    default_effort="xhigh",
     base_args=("chat", "--no-interactive", "--trust-tools=", "--wrap", "never"),
     model_flag="--model",
     effort_flag="--effort",
     env=(("NO_COLOR", "1"), ("KIRO_ASCII_MODE", "1")),
-    auth_env="KIRO_API_KEY",
     sanitize=strip_chrome,
 )
 
@@ -110,6 +117,7 @@ def build_call(
     model = model or provider.default_model
     if model and provider.model_flag:
         cmd += [provider.model_flag, model]
+    effort = effort or provider.default_effort
     if effort and provider.effort_flag:
         cmd += [provider.effort_flag, effort]
 

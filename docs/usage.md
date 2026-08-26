@@ -28,7 +28,7 @@ Equivalent direct calls:
 Key flags: `--provider` (`claude` default, or `kiro`), `--model` (provider-specific,
 defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
-`--effort` (claude only), `--timeout` seconds per call (default 1200),
+`--effort` (kiro defaults to `xhigh`), `--timeout` seconds per call (default 2400),
 `--no-primer`, `--force` to ignore cached rewrites.
 
 Progress prints per chapter; interrupted runs resume from the `.blasphemy/`
@@ -53,23 +53,29 @@ Never pass `--bare`: it forces API-key auth and bypasses the subscription.
 ### kiro
 
 `kiro-cli chat --no-interactive` (the bare `kiro` command opens the IDE).
-Install with `curl -fsSL https://cli.kiro.dev/install | bash`. Constraints that
-shape the integration:
+Install with `curl -fsSL https://cli.kiro.dev/install | bash`. Defaults to
+`claude-fable-5` at `xhigh` effort; override with `--model` / `--effort`,
+list valid ids with `kiro-cli chat --list-models` (which flags fable as an
+internal preview). Constraints that shape the integration, verified against
+kiro-cli 2.19:
 
-- **Auth:** headless requires `export KIRO_API_KEY=ksk_…`, available on paid
-  plans only. `make check` warns when it is unset.
+- **Auth is the `kiro-cli login` session**, not an API key. The CLI keeps its
+  own token store, separate from the Kiro IDE's — a logged-in IDE does not
+  cover the CLI. Check with `kiro-cli whoami`; when the session expires,
+  re-login with `kiro-cli login --use-device-flow`. Logged out, a headless
+  call blocks trying to open a browser instead of failing fast.
+- **The default profile applies.** No `--agent` is passed, so the profile
+  named by `kiro-cli settings chat.defaultAgent` handles every call.
 - **No system-prompt flag.** The system prompt is prepended to stdin.
 - **stdin is read only when no prompt argument is passed** — so nothing is ever
   passed positionally, and chapters travel on stdin.
 - **No way to disable tools.** `--trust-tools=` trusts none, so an attempted
   tool call fails loudly rather than being silently approved. `--trust-all-tools`
   is deliberately never used.
-- **No plain-text output mode.** Responses arrive with ANSI styling and a
-  `Credits: … Time: …` footer, both stripped before use.
+- **No plain-text output mode.** Responses arrive ANSI-styled, open with a
+  `> ` reply marker, and may carry a `Credits: … Time: …` footer — all
+  stripped before use.
 - **Pin 2.x.** Kiro CLI 3.0 drops the non-TUI path that headless mode uses.
-- `--model` is undocumented on 2.x but accepted; omitted unless you pass
-  `--model`, in which case `kiro-cli settings chat.defaultModel` applies.
-  List valid ids with `kiro-cli chat --list-models --format json`.
 
 ## Quota exhaustion
 

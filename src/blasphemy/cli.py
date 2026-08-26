@@ -1,5 +1,4 @@
 import argparse
-import os
 import sys
 from importlib import resources
 from pathlib import Path
@@ -39,7 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--only", default="", help="comma-separated chapter indices to rewrite; all others pass through"
     )
-    parser.add_argument("--timeout", type=int, default=1200)
+    parser.add_argument(
+        "--timeout", type=int, default=2400,
+        help="seconds per agent call (default 2400 — xhigh effort on a large "
+        "chapter can exceed 20 minutes)",
+    )
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--no-primer", action="store_true", help="skip book primer")
     parser.add_argument("--list", action="store_true", help="list chapters and exit")
@@ -50,13 +53,12 @@ def check_providers() -> int:
     for name, provider in providers.REGISTRY.items():
         found = providers.available(provider)
         model = provider.default_model or "(provider default)"
-        line = (
+        if provider.default_effort:
+            model += f" @ {provider.default_effort}"
+        print(
             f"{name:8s} {'ok' if found else 'missing':8s} "
             f"{providers.binary_for(provider)}  model: {model}"
         )
-        if found and provider.auth_env and not os.environ.get(provider.auth_env):
-            line += f"  [{provider.auth_env} unset — headless calls will fail]"
-        print(line)
     return 0 if any(providers.available(p) for p in providers.REGISTRY.values()) else 1
 
 
@@ -93,9 +95,11 @@ def main(argv: list[str] | None = None) -> int:
 
     chapters = epub.chapters(epub.load(args.epub))
     reporter = report.Reporter(len(chapters))
+    effort = args.effort or provider.default_effort
     reporter.note(
         f"{args.epub.name} — {len(chapters)} documents · {provider.name} · "
         f"{args.model or provider.default_model or 'provider default'}"
+        + (f" · {effort}" if effort else "")
     )
 
     def call_agent(payload: str, system: str) -> str:

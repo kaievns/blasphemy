@@ -14,8 +14,8 @@ Retune the prompts in `src/blasphemy/prompts/` for anyone else.
 - [Claude Code](https://claude.com/claude-code) (`claude`), logged in — the
   default backend
 - Optional alternative: [Kiro CLI](https://kiro.dev) 2.x (`kiro-cli`), selected
-  with `--provider kiro`; headless use needs a paid plan and `KIRO_API_KEY`
-  ([details](docs/usage.md#providers))
+  with `--provider kiro`; rides your `kiro-cli login` session and defaults to
+  `claude-fable-5` at `xhigh` effort ([details](docs/usage.md#providers))
 
 ## Quickstart
 

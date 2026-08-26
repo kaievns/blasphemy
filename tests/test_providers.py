@@ -35,11 +35,27 @@ def test_kiro_call_shape():
     assert cmd[1:3] == ["chat", "--no-interactive"]
     assert "--trust-tools=" in cmd  # trust nothing; never --trust-all-tools
     assert "--trust-all-tools" not in cmd
-    # no --model unless asked: kiro's own default model stands
-    assert "--model" not in cmd
+    # fable at xhigh effort unless the caller overrides
+    assert cmd[cmd.index("--model") + 1] == "claude-fable-5"
+    assert cmd[cmd.index("--effort") + 1] == "xhigh"
+    # no --agent: the default profile configured in kiro-cli applies
+    assert "--agent" not in cmd
     # kiro has no system-prompt flag, and only reads stdin with no argv prompt
     assert stdin.startswith("SYSTEM") and stdin.endswith("CHAPTER")
     assert cmd[-1] != stdin
+
+
+def test_kiro_defaults_overridable():
+    cmd, _ = providers.build_call(
+        providers.KIRO, "CHAPTER", "SYSTEM", model="claude-sonnet-5", effort="low"
+    )
+    assert cmd[cmd.index("--model") + 1] == "claude-sonnet-5"
+    assert cmd[cmd.index("--effort") + 1] == "low"
+
+
+def test_claude_sends_no_effort_unless_asked():
+    cmd, _ = providers.build_call(providers.CLAUDE, "CHAPTER", "SYSTEM")
+    assert "--effort" not in cmd
 
 
 def test_effort_omitted_when_provider_lacks_flag():
@@ -51,6 +67,12 @@ def test_effort_omitted_when_provider_lacks_flag():
 def test_strip_chrome_removes_ansi_and_credits_footer():
     raw = "\x1b[1mAnswer\x1b[0m text\n\n▸ Credits: 0.39 • Time: 22s\n"
     assert providers.strip_chrome(raw) == "Answer text"
+
+
+def test_strip_chrome_drops_reply_marker_but_keeps_blockquotes():
+    # observed kiro-cli 2.19 shape: ANSI-wrapped `> ` opens the reply
+    raw = "\x1b[m> \x1b[0malpha\x1b[0m\x1b[0m\nline two\n\n> a real quote"
+    assert providers.strip_chrome(raw) == "alpha\nline two\n\n> a real quote"
 
 
 def test_kiro_output_is_sanitised_and_env_applied():

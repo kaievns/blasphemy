@@ -18,14 +18,9 @@ def test_check_providers_reports_each(capsys):
     assert "missing" not in out
 
 
-def test_check_providers_flags_missing_auth(monkeypatch, capsys):
-    monkeypatch.delenv("KIRO_API_KEY", raising=False)
+def test_check_providers_shows_kiro_defaults(capsys):
     cli.main(["--check-providers"])
-    assert "KIRO_API_KEY unset" in capsys.readouterr().out
-
-    monkeypatch.setenv("KIRO_API_KEY", "ksk_x")
-    cli.main(["--check-providers"])
-    assert "KIRO_API_KEY unset" not in capsys.readouterr().out
+    assert "claude-fable-5 @ xhigh" in capsys.readouterr().out
 
 
 def test_check_providers_fails_when_none_installed(monkeypatch, capsys):
