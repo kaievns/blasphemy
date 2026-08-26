@@ -21,9 +21,8 @@ outranks the target — but padding never qualifies.
   chapter's main claims survive inline, exactly.
 - Peripheral specifics — incidental numbers inside examples, secondary
   asides — may be dropped when they don't serve the argument.
-- Code listings travel as ⟦PRE-n: …⟧ tokens — each stays exactly where its
-  listing belongs, on its own line. Inline code and technical terms
-  verbatim — never substitute a simpler word for a term.
+- Code blocks verbatim. Technical terms verbatim — never substitute a
+  simpler word for a term.
 - The author's argument order is preserved.
 
 # Register — expert to expert

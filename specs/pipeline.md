@@ -55,16 +55,12 @@ surrounding prose without touching the fragile XML. Originals are re-injected
 after conversion back to HTML. A lost token fails the chapter (original kept,
 output evicted from cache into `NNN.failed.md`).
 
-Code listings (`<pre>`) are protected the same way (added 2026-08-26,
-replacing a positional pre-for-fence swap). Two reasons: the "code blocks
-verbatim" guarantee becomes structural instead of model-dependent, and
-fenced code cannot survive some providers at all — kiro-cli's renderer
-consumes ``` fences and inline backticks on output, which silently flattened
-every listing in a code-heavy book. The `⟦PRE-n: first code line⟧` gist keeps
-the listing locatable; the publisher's original markup (styled spans, listing
-annotations, bolded input) is re-injected byte-for-byte. On restore, a token
-sitting alone in a paragraph replaces the whole `<p>` so block-level `<pre>`
-never nests inside it.
+Code listings are deliberately *not* tokenized: the model reads and rewrites
+around real fenced code, and the original `<pre>` markup (styled spans,
+listing annotations, bolded input) is swapped back positionally when the
+fence count matches. This relies on the provider returning the model's
+markdown faithfully — see the kiro session-store note in `docs/usage.md`
+for how that is guaranteed there.
 
 ## Rewrite architecture (locked 2026-08-25, after A–K sample iterations)
 

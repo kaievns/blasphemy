@@ -2,7 +2,7 @@ import re
 
 from bs4 import BeautifulSoup
 
-PROTECTED_TAGS = ["math", "svg", "pre"]
+PROTECTED_TAGS = ["math", "svg"]
 GIST_MAX = 60
 
 
@@ -18,12 +18,7 @@ def _gist(node) -> str:
             found = node.find(tag)
             if found and found.get_text(strip=True):
                 return found.get_text(strip=True)[:GIST_MAX]
-    if node.name == "pre":
-        # first code line locates the listing better than squashed text
-        lines = [l.strip() for l in node.get_text().splitlines() if l.strip()]
-        text = lines[0] if lines else "code"
-    else:
-        text = node.get_text(" ", strip=True)
+    text = node.get_text(" ", strip=True)
     text = re.sub(r"[⟦⟧\s]+", lambda m: " " if m.group().isspace() else "", text)
     return text[:GIST_MAX] or "diagram"
 
@@ -52,20 +47,31 @@ def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
     for key, original in blocks.items():
         kind, block_id = key.rsplit("-", 1)
         pattern = _token_re(kind, int(block_id))
-        replacement = original.replace("\\", r"\\")
-        count = 0
-        if original.lstrip().lower().startswith("<pre"):
-            # pre is block-level: when its token sits alone in a paragraph,
-            # replace the whole <p> so the pre is not nested inside it
-            wrapped = re.compile(rf"<p>\s*{pattern.pattern}\s*</p>")
-            html, count = wrapped.subn(replacement, html, count=1)
-        if count == 0:
-            html, count = pattern.subn(replacement, html, count=1)
+        html, count = pattern.subn(original.replace("\\", r"\\"), html, count=1)
         if count == 0:
             missing.append(key)
         else:
             html = pattern.sub("", html)
     return html, missing
+
+
+def extract_pre(html: str) -> list[str]:
+    soup = BeautifulSoup(html, "html.parser")
+    return [str(pre) for pre in soup.find_all("pre")]
+
+
+def restore_pre(html: str, originals: list[str]) -> tuple[str, bool]:
+    # swap regenerated fenced code back for the original pre markup
+    # (listing annotations, bolded input, styled spans survive)
+    if not originals:
+        return html, True
+    soup = BeautifulSoup(html, "html.parser")
+    pres = soup.find_all("pre")
+    if len(pres) != len(originals):
+        return html, False
+    for pre, original in zip(pres, originals):
+        pre.replace_with(BeautifulSoup(original, "html.parser"))
+    return str(soup), True
 
 
 def protect_anchors(html: str, ids: set[str]) -> tuple[str, list[str]]:

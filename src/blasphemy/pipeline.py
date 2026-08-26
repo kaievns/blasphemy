@@ -130,6 +130,12 @@ def optimise(
                     html, lost_anchors = blocks.restore_anchors(html, anchor_ids)
                     if lost_anchors:
                         detail = f"anchors fell back to top: {', '.join(lost_anchors)}"
+                    html, pre_ok = blocks.restore_pre(
+                        html, blocks.extract_pre(chapter.html)
+                    )
+                    if not pre_ok:
+                        note = "code blocks left fenced (count mismatch)"
+                        detail = f"{detail}; {note}" if detail else note
                     epub.replace_content(book, chapter.item_id, html)
             result = Result(
                 chapter.index, chapter.item_id, chapter.title, status,

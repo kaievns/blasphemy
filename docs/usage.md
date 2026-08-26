@@ -72,12 +72,17 @@ kiro-cli 2.19:
 - **No way to disable tools.** `--trust-tools=` trusts none, so an attempted
   tool call fails loudly rather than being silently approved. `--trust-all-tools`
   is deliberately never used.
-- **No plain-text output mode.** Responses arrive ANSI-styled, open with a
-  `> ` reply marker, and may carry a `Credits: … Time: …` footer — all
-  stripped before use. Worse, the renderer *consumes* markdown structure:
-  ``` fences and inline backticks never reach stdout. Code listings survive
-  because they travel as `⟦PRE-n⟧` tokens and never pass through the
-  renderer; inline code degrades to plain text on this provider.
+- **No plain-text output mode — stdout is a rendered picture.** The terminal
+  renderer consumes markdown structure (``` fences and inline backticks never
+  reach stdout) and adds ANSI styling, a `> ` reply marker, and sometimes a
+  `Credits: … Time: …` footer. So the response is not taken from stdout: the
+  CLI persists each chat verbatim in a local sqlite store
+  (`~/Library/Application Support/kiro-cli/data.sqlite3`, `conversations_v2`),
+  and after every call the faithful markdown is fetched from there, matched
+  by exact payload, then the session is deleted to keep the store tidy.
+  Sanitized stdout remains as a fallback: if a kiro update ever changes the
+  store schema, runs keep working but code-bearing chapters will show the
+  `count mismatch` note — that's the signal to revisit this integration.
 - **Pin 2.x.** Kiro CLI 3.0 drops the non-TUI path that headless mode uses.
 
 ## Quota exhaustion

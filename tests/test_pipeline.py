@@ -10,19 +10,12 @@ def optimise(sample_epub, tmp_path, rewrite, **kwargs):
     return out, workdir, results
 
 
-def body_with_tokens(md, title="R", keep_anchors=False):
-    # echo the strict tokens like an obedient model; anchors only on request
-    kinds = "PRE|MATH|SVG" + ("|ANCHOR" if keep_anchors else "")
-    tokens = "\n\n".join(re.findall(rf"⟦(?:{kinds})[^⟧]*⟧", md))
-    return f"# {title}\n\n{tokens}\n\n" + " ".join(["word"] * 100)
-
-
 def test_short_chapters_skipped_long_rewritten(sample_epub, tmp_path):
     calls = []
 
     def rewrite(md, chapter):
         calls.append(md)
-        return body_with_tokens(md, title="Rewritten")
+        return "# Rewritten\n\n" + " ".join(["word"] * 100)
 
     out, _, results = optimise(sample_epub, tmp_path, rewrite)
     statuses = {r.item_id: r.status for r in results}
@@ -35,11 +28,12 @@ def test_short_chapters_skipped_long_rewritten(sample_epub, tmp_path):
 
 
 def test_cache_reused_and_force(sample_epub, tmp_path):
+    output = "# Cached\n\n" + " ".join(["word"] * 100)
     calls = []
 
     def rewrite(md, chapter):
         calls.append(md)
-        return body_with_tokens(md, title="Cached")
+        return output
 
     workdir = tmp_path / "work"
     pipeline.optimise(sample_epub, tmp_path / "a.epub", rewrite, workdir)
@@ -58,7 +52,7 @@ def test_skip_indices_pass_through(sample_epub, tmp_path):
 
     def rewrite(md, chapter):
         calls.append(md)
-        return body_with_tokens(md)
+        return "# R\n\n" + " ".join(["word"] * 100)
 
     _, _, results = optimise(sample_epub, tmp_path, rewrite, skip={1})
     statuses = {r.item_id: r.status for r in results}
@@ -72,7 +66,7 @@ def test_only_restricts_rewrites(sample_epub, tmp_path):
 
     def rewrite(md, chapter):
         calls.append(chapter.index)
-        return body_with_tokens(md)
+        return "# R\n\n" + " ".join(["word"] * 100)
 
     _, _, results = optimise(sample_epub, tmp_path, rewrite, only={2})
     statuses = {r.item_id: r.status for r in results}
@@ -101,7 +95,7 @@ def test_sanity_check_rejects_tiny_output(sample_epub, tmp_path):
 
 
 def test_source_markdown_written_for_inspection(sample_epub, tmp_path):
-    rewrite = lambda md, chapter: body_with_tokens(md)
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
     _, workdir, _ = optimise(sample_epub, tmp_path, rewrite)
     assert "quick brown fox" in (workdir / "001.src.md").read_text()
 
@@ -144,7 +138,7 @@ def test_nav_document_never_rewritten(tmp_path):
 
 
 def test_output_retitled_and_cover_badged(sample_epub, tmp_path):
-    rewrite = lambda md, chapter: body_with_tokens(md)
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
     out, _, _ = optimise(sample_epub, tmp_path, rewrite)
 
     book = epub.load(out)
@@ -155,7 +149,8 @@ def test_output_retitled_and_cover_badged(sample_epub, tmp_path):
 
 def test_anchor_restored_when_token_kept(sample_epub, tmp_path):
     def rewrite(md, chapter):
-        return body_with_tokens(md, keep_anchors=True)
+        token = re.search(r"⟦ANCHOR:[^⟧]*⟧", md).group()
+        return f"# R\n\n{token}\n\n" + " ".join(["word"] * 100)
 
     out, _, results = optimise(sample_epub, tmp_path, rewrite)
     ch1 = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "ch1")
@@ -165,7 +160,7 @@ def test_anchor_restored_when_token_kept(sample_epub, tmp_path):
 
 
 def test_anchor_fallback_when_dropped(sample_epub, tmp_path):
-    rewrite = lambda md, chapter: body_with_tokens(md)  # anchors dropped
+    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
     out, _, results = optimise(sample_epub, tmp_path, rewrite)
     ch1_result = next(r for r in results if r.item_id == "ch1")
     assert ch1_result.status == "rewritten"
@@ -180,27 +175,22 @@ def test_referenced_anchors_from_links_and_toc(sample_epub):
     assert refs["ch1.xhtml"] == {"sec1"}
 
 
-def test_pre_token_roundtrip_restores_original_markup(sample_epub, tmp_path):
+def test_pre_markup_restored_in_output(sample_epub, tmp_path):
     def rewrite(md, chapter):
-        token = re.search(r"⟦PRE[^⟧]*⟧", md).group()
-        return f"# R\n\n{token}\n\n" + " ".join(["word"] * 100)
+        return "# R\n\n```\nprint('hello')\n```\n\n" + " ".join(["word"] * 100)
 
     out, _, results = optimise(sample_epub, tmp_path, rewrite)
     ch1 = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "ch1")
     assert "<pre><code>print('hello')</code></pre>" in ch1.html
-    assert "⟦" not in ch1.html
-    assert next(r for r in results if r.item_id == "ch1").status == "rewritten"
+    ch1_result = next(r for r in results if r.item_id == "ch1")
+    assert "count mismatch" not in ch1_result.detail
 
 
-def test_dropped_pre_token_fails_chapter(sample_epub, tmp_path):
+def test_pre_count_mismatch_reported(sample_epub, tmp_path):
     rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
-    out, _, results = optimise(sample_epub, tmp_path, rewrite)
+    _, _, results = optimise(sample_epub, tmp_path, rewrite)
     ch1 = next(r for r in results if r.item_id == "ch1")
-    assert ch1.status == "failed"
-    assert "PRE-0" in ch1.detail
-    # the original chapter, code and all, is kept
-    chapters = {c.item_id: c for c in epub.chapters(epub.load(out))}
-    assert "print('hello')" in chapters["ch1"].html
+    assert "count mismatch" in ch1.detail
 
 
 def test_sane_ratio_bounds():

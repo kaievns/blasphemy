@@ -1,9 +1,36 @@
+import json
+import os
+import sqlite3
 import subprocess
 from unittest.mock import patch
 
 import pytest
 
 from blasphemy import providers
+
+
+def conversation(prompt, content, session="sess-1"):
+    return {
+        "conversation_id": session,
+        "history": [{
+            "user": {"content": {"Prompt": {"prompt": prompt}}},
+            "assistant": {"Response": {"message_id": "m", "content": content}},
+        }],
+    }
+
+
+def fake_store(tmp_path, conversations, key=None):
+    db_path = tmp_path / "data.sqlite3"
+    db = sqlite3.connect(db_path)
+    db.execute("CREATE TABLE conversations_v2 (key TEXT, value TEXT)")
+    for convo in conversations:
+        db.execute(
+            "INSERT INTO conversations_v2 VALUES (?, ?)",
+            (key or os.getcwd(), json.dumps(convo)),
+        )
+    db.commit()
+    db.close()
+    return str(db_path)
 
 
 def completed(returncode=0, stdout="rewritten", stderr=""):
@@ -75,7 +102,8 @@ def test_strip_chrome_drops_reply_marker_but_keeps_blockquotes():
     assert providers.strip_chrome(raw) == "alpha\nline two\n\n> a real quote"
 
 
-def test_kiro_output_is_sanitised_and_env_applied():
+def test_kiro_output_is_sanitised_and_env_applied(monkeypatch):
+    monkeypatch.setattr(providers, "KIRO_STORE_PATHS", ("/nonexistent",))
     noisy = completed(stdout="\x1b[32mclean\x1b[0m\n▸ Credits: 0.4 • Time: 3s\n")
     with patch("subprocess.run", return_value=noisy) as run:
         assert providers.rewrite(
@@ -83,6 +111,62 @@ def test_kiro_output_is_sanitised_and_env_applied():
         ) == "clean"
     env = run.call_args.kwargs["env"]
     assert env["NO_COLOR"] == "1" and env["KIRO_ASCII_MODE"] == "1"
+
+
+def test_kiro_fetch_returns_raw_markdown_and_forgets_session(tmp_path, monkeypatch):
+    store = fake_store(tmp_path, [
+        conversation("other payload", "wrong answer", session="sess-a"),
+        conversation("the payload", "Use `Vec<i32>` — **fast**.", session="sess-b"),
+    ])
+    monkeypatch.setattr(providers, "KIRO_STORE_PATHS", (store,))
+    forgotten = []
+    monkeypatch.setattr(providers, "_kiro_forget", forgotten.append)
+    assert providers.kiro_fetch("the payload") == "Use `Vec<i32>` — **fast**."
+    assert forgotten == ["sess-b"]
+
+
+def test_kiro_fetch_without_match_or_store_returns_none(tmp_path, monkeypatch):
+    store = fake_store(tmp_path, [conversation("something else", "answer")])
+    monkeypatch.setattr(providers, "KIRO_STORE_PATHS", (store,))
+    assert providers.kiro_fetch("the payload") is None
+    monkeypatch.setattr(providers, "KIRO_STORE_PATHS", ("/nonexistent",))
+    assert providers.kiro_fetch("the payload") is None
+
+
+def test_kiro_fetch_ignores_other_workdirs(tmp_path, monkeypatch):
+    store = fake_store(
+        tmp_path, [conversation("the payload", "answer")], key="/elsewhere"
+    )
+    monkeypatch.setattr(providers, "KIRO_STORE_PATHS", (store,))
+    assert providers.kiro_fetch("the payload") is None
+
+
+def test_rewrite_prefers_fetched_response_over_rendered_stdout():
+    seen = []
+
+    def fetch(payload):
+        seen.append(payload)
+        return "raw with `backticks` and\n\n```\nfences\n```"
+
+    provider = providers.Provider(name="x", binary="x", default_model="", fetch=fetch)
+    mangled = completed(stdout="raw with backticks and\nfences")
+    with patch("subprocess.run", return_value=mangled):
+        out = providers.rewrite("CHAPTER", "SYSTEM", provider=provider)
+    assert out == "raw with `backticks` and\n\n```\nfences\n```"
+    # fetch is matched against the full payload the model actually received
+    assert seen[0].startswith("SYSTEM") and seen[0].endswith("CHAPTER")
+
+
+def test_rewrite_falls_back_to_stdout_when_fetch_misses():
+    provider = providers.Provider(
+        name="x", binary="x", default_model="", fetch=lambda payload: None
+    )
+    with patch("subprocess.run", return_value=completed(stdout="rendered\n")):
+        assert providers.rewrite("CHAPTER", "SYSTEM", provider=provider) == "rendered"
+
+
+def test_kiro_provider_wires_store_fetch():
+    assert providers.KIRO.fetch is providers.kiro_fetch
 
 
 def test_claude_run_inherits_env_unchanged():

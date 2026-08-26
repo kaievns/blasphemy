@@ -1,6 +1,8 @@
+import json
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -39,6 +41,9 @@ class Provider:
     prompt_as_arg: bool = False  # True: user text is the last argv, not stdin
     env: tuple[tuple[str, str], ...] = ()
     sanitize: Callable[[str], str] = field(default=str.strip)
+    # fetch(payload) returns the faithful response from outside stdout, or
+    # None to fall back to sanitized stdout
+    fetch: Callable[[str], str | None] | None = None
 
 
 CLAUDE = Provider(
@@ -58,6 +63,69 @@ CLAUDE = Provider(
     system_flag="--system-prompt",
 )
 
+# kiro-cli renders markdown for the terminal even when piped: ``` fences and
+# inline backticks are consumed before stdout and cannot be recovered from it.
+# The CLI does persist every chat verbatim in a local sqlite store, so the
+# faithful response is fetched from there after each call; rendered stdout is
+# only a fallback (and flagged downstream by the pre count-mismatch note).
+KIRO_STORE_PATHS = (
+    "~/Library/Application Support/kiro-cli/data.sqlite3",  # macOS
+    "~/.local/share/kiro-cli/data.sqlite3",  # linux
+)
+KIRO_STORE_SCAN = 50  # newest conversations checked per fetch
+
+
+def _kiro_forget(session_id: str) -> None:
+    # keep the store from accumulating one session per rewritten chapter
+    try:
+        subprocess.run(
+            [binary_for(KIRO), "chat", "-d", session_id],
+            capture_output=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        pass  # cleanup is best-effort; a stale session is harmless
+
+
+def kiro_fetch(payload: str) -> str | None:
+    """Raw assistant markdown for `payload` from kiro-cli's session store."""
+    for candidate in KIRO_STORE_PATHS:
+        store = Path(candidate).expanduser()
+        if store.is_file():
+            break
+    else:
+        return None
+    try:
+        db = sqlite3.connect(f"file:{store}?mode=ro", uri=True)
+        try:
+            rows = db.execute(
+                "SELECT value FROM conversations_v2 WHERE key = ?"
+                " ORDER BY rowid DESC LIMIT ?",
+                (os.getcwd(), KIRO_STORE_SCAN),
+            ).fetchall()
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return None
+    for (raw,) in rows:
+        try:
+            conversation = json.loads(raw)
+        except ValueError:
+            continue
+        for entry in conversation.get("history") or []:
+            user = (entry.get("user") or {}).get("content") or {}
+            prompt = (user.get("Prompt") or {}).get("prompt") or ""
+            if prompt.strip() != payload.strip():
+                continue
+            response = (entry.get("assistant") or {}).get("Response") or {}
+            content = (response.get("content") or "").strip()
+            if content:
+                session_id = conversation.get("conversation_id")
+                if session_id:
+                    _kiro_forget(session_id)
+                return content
+    return None
+
+
 # kiro-cli 2.x (verified on 2.19): `kiro` opens the IDE. No system-prompt,
 # tools, or output-format flags — the system prompt rides on stdin, and stdin
 # is only read when no positional prompt is given. `--trust-tools=` trusts
@@ -76,6 +144,7 @@ KIRO = Provider(
     effort_flag="--effort",
     env=(("NO_COLOR", "1"), ("KIRO_ASCII_MODE", "1")),
     sanitize=strip_chrome,
+    fetch=kiro_fetch,
 )
 
 REGISTRY = {provider.name: provider for provider in (CLAUDE, KIRO)}
@@ -163,8 +232,13 @@ def rewrite(
             last_error = f"timed out after {timeout}s"
             continue
         output = provider.sanitize(proc.stdout)
-        if proc.returncode == 0 and output:
-            return output
+        if proc.returncode == 0:
+            if provider.fetch:
+                fetched = provider.fetch(stdin if stdin is not None else cmd[-1])
+                if fetched:
+                    return fetched
+            if output:
+                return output
         last_error = (
             strip_chrome(proc.stderr) or output[:200] or "empty output"
         )
