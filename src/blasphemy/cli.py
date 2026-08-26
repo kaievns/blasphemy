@@ -3,7 +3,7 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import apparatus, claude, epub, pipeline, primer
+from . import apparatus, epub, pipeline, primer, providers
 
 
 def default_prompt(name: str = "body") -> str:
@@ -12,11 +12,23 @@ def default_prompt(name: str = "body") -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="blasphemy", description="Optimise an epub for readability via Claude."
+        prog="blasphemy",
+        description="Optimise an epub for readability via an agent CLI.",
     )
-    parser.add_argument("epub", type=Path)
+    parser.add_argument("epub", type=Path, nargs="?")
     parser.add_argument("-o", "--output", type=Path)
-    parser.add_argument("--model", default="fable")
+    parser.add_argument(
+        "--provider",
+        default="auto",
+        choices=["auto", *providers.REGISTRY],
+        help="agent CLI to drive (default: first one installed)",
+    )
+    parser.add_argument(
+        "--check-providers",
+        action="store_true",
+        help="report which agent CLIs are usable and exit",
+    )
+    parser.add_argument("--model", help="provider-specific model name")
     parser.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"])
     parser.add_argument("--prompt", type=Path)
     parser.add_argument("--min-words", type=int, default=200)
@@ -33,8 +45,23 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def check_providers() -> int:
+    for name in providers.ORDER:
+        provider = providers.REGISTRY[name]
+        binary = providers.binary_for(provider)
+        found = providers.available(provider)
+        model = provider.default_model or "(provider default)"
+        print(f"{name:8s} {'ok' if found else 'missing':8s} {binary}  model: {model}")
+    return 0 if any(providers.available(p) for p in providers.REGISTRY.values()) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.check_providers:
+        return check_providers()
+    if args.epub is None:
+        print("error: an epub path is required", file=sys.stderr)
+        return 2
     if not args.epub.exists():
         print(f"not found: {args.epub}", file=sys.stderr)
         return 1
@@ -44,31 +71,39 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{chapter.index:3d}  {chapter.words:6d}w  {chapter.href}  {chapter.title}")
         return 0
 
+    try:
+        provider = providers.resolve(args.provider)
+    except providers.ProviderError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+
     body_prompt = args.prompt.read_text() if args.prompt else default_prompt("body")
     apparatus_prompt = default_prompt("apparatus")
     out_path = args.output or args.epub.with_suffix(".optimised.epub")
     workdir = pipeline.workdir_for(args.epub)
+    print(
+        f"provider: {provider.name}  model: "
+        f"{args.model or provider.default_model or '(provider default)'}",
+        flush=True,
+    )
+
+    def call_agent(payload: str, system: str) -> str:
+        return providers.rewrite(
+            payload, system, provider=provider,
+            model=args.model, effort=args.effort, timeout=args.timeout,
+        )
 
     book_primer = ""
     if not args.no_primer:
         chapters = epub.chapters(epub.load(args.epub))
         book_primer = primer.build(
             chapters,
-            lambda text: claude.rewrite(
-                text, default_prompt("primer"),
-                model=args.model, effort=args.effort, timeout=args.timeout,
-            ),
+            lambda text: call_agent(text, default_prompt("primer")),
             workdir,
             force=args.force,
             min_words=args.min_words,
         )
         print(f"primer ready ({len(book_primer.split())} words)", flush=True)
-
-    def call_claude(payload: str, system: str) -> str:
-        return claude.rewrite(
-            payload, system,
-            model=args.model, effort=args.effort, timeout=args.timeout,
-        )
 
     def with_context(base: str, chapter: epub.Chapter) -> str:
         if book_primer:
@@ -83,9 +118,9 @@ def main(argv: list[str] | None = None) -> int:
             f"words. Exceed only where a cut would damage comprehension of the "
             f"main argument.]"
         )
-        body = call_claude(chapter_md + contract, with_context(body_prompt, chapter))
+        body = call_agent(chapter_md + contract, with_context(body_prompt, chapter))
         budget = max(220, int(len(body.split()) * 0.10))
-        raw = call_claude(
+        raw = call_agent(
             f"{body}\n\n[Apparatus word cap: {budget} words total across all "
             f"sections — a contract.]",
             with_context(apparatus_prompt, chapter),

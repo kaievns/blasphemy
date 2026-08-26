@@ -9,8 +9,13 @@ information.
 ## Decisions (locked 2026-08-23)
 
 - **Stack:** Python 3.12, pytest, ebooklib + markdownify + markdown.
-- **Claude access:** `claude -p` headless (subscription auth — never `--bare`,
-  which forces API-key-only auth). Not the Anthropic SDK.
+- **Model access:** an agent CLI in headless mode, not a vendor SDK — keeps
+  subscription auth and avoids per-token billing. Providers are data
+  (`providers.py`): binary, base flags, and optional model/effort/system-prompt
+  flags. `claude -p` is the reference provider (never `--bare`, which forces
+  API-key auth); `kiro` is the second. A provider without a system-prompt flag
+  gets the system prompt folded into stdin. Binary lookup falls back past
+  `PATH` to the usual install dirs because cron/make/nohup shells lose it.
 - **Default model:** `fable` (Claude Fable 5; default since 2026-08-25 —
   it honors length/budget contracts Opus ignored and reads denser at equal
   quality). Configurable via `--model`.

@@ -1,6 +1,41 @@
 from unittest.mock import patch
 
-from blasphemy import cli
+from blasphemy import cli, providers
+
+
+def test_check_providers_reports_each(monkeypatch, capsys):
+    monkeypatch.setattr(providers.shutil, "which", lambda binary: "/x")
+    assert cli.main(["--check-providers"]) == 0
+    out = capsys.readouterr().out
+    assert "claude" in out and "kiro" in out
+    assert "missing" not in out
+
+
+def test_check_providers_fails_when_none_installed(monkeypatch, capsys):
+    monkeypatch.setattr(providers.shutil, "which", lambda binary: None)
+    assert cli.main(["--check-providers"]) == 1
+    assert "missing" in capsys.readouterr().out
+
+
+def test_epub_required_without_check():
+    assert cli.main([]) == 2
+
+
+def test_unresolvable_provider_reports_error(sample_epub, monkeypatch, capsys):
+    monkeypatch.setattr(providers.shutil, "which", lambda binary: None)
+    assert cli.main([str(sample_epub)]) == 1
+    assert "no agent CLI" in capsys.readouterr().err
+
+
+def test_provider_selection_reaches_rewrite(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    body = "# R\n\n" + " ".join(["word"] * 100)
+    with patch("blasphemy.providers.rewrite", return_value=body) as rewrite:
+        cli.main([
+            str(sample_epub), "-o", str(tmp_path / "o.epub"),
+            "--provider", "kiro", "--no-primer",
+        ])
+    assert rewrite.call_args.kwargs["provider"] is providers.KIRO
 
 
 def test_list_prints_chapters(sample_epub, capsys):
@@ -38,8 +73,8 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     out = tmp_path / "out.epub"
     body = "# R\n\n" + " ".join(["word"] * 100)
     responses = ["PRIMER"] + [body, APPARATUS_RAW] * 2
-    with patch("blasphemy.claude.rewrite", side_effect=responses) as rewrite:
-        code = cli.main([str(sample_epub), "-o", str(out), "--model", "sonnet"])
+    with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
+        code = cli.main([str(sample_epub), "-o", str(out), "--provider", "claude", "--model", "sonnet"])
     assert code == 0
     assert out.exists()
     assert rewrite.call_args.kwargs["model"] == "sonnet"
@@ -65,6 +100,6 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
 def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     rewritten = "# R\n\n" + " ".join(["word"] * 100)
-    with patch("blasphemy.claude.rewrite", return_value=rewritten) as rewrite:
-        cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"])
+    with patch("blasphemy.providers.rewrite", return_value=rewritten) as rewrite:
+        cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--provider", "claude", "--no-primer"])
     assert all("# Book context" not in c.args[1] for c in rewrite.call_args_list)

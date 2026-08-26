@@ -4,4 +4,4 @@ __pycache__/
 .pytest_cache/
 .blasphemy/
 *.epub
-experiments/
+experiments/samples/

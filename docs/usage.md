@@ -3,35 +3,64 @@
 ## Setup
 
 ```sh
-python3 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
+make setup          # venv + editable install
+make check          # which agent CLIs are usable
+make test
 ```
 
 ## Run
 
 ```sh
-.venv/bin/blasphemy book.epub                 # → book.optimised.epub
-.venv/bin/blasphemy book.epub --list          # inspect chapters, no rewriting
-.venv/bin/blasphemy book.epub --model sonnet  # cheaper/faster model
-.venv/bin/blasphemy book.epub --force         # ignore cached rewrites
+make run  BOOK=book.epub                          # → book.optimised.epub
+make run  BOOK=book.epub PROVIDER=kiro
+make run  BOOK=book.epub ARGS='--force --only 8'
+make list BOOK=book.epub                          # inspect chapters, no rewriting
 ```
 
-Key flags: `-o` output path, `--prompt` alternate prompt file, `--min-words`
-skip threshold (default 200), `--skip` chapter indices to pass through,
-`--effort` claude effort level, `--timeout` seconds per chapter (default
-1200), `--no-primer` to skip the book-primer context pass.
+Equivalent direct calls:
 
-Requires the `claude` CLI logged in (subscription auth). Progress prints per
-chapter; interrupted runs resume from the `.blasphemy/` cache.
+```sh
+.venv/bin/blasphemy book.epub
+.venv/bin/blasphemy book.epub --provider claude --model opus
+.venv/bin/blasphemy book.epub --list
+```
+
+Key flags: `--provider` (`auto`|`claude`|`kiro`), `--model` (provider-specific,
+defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
+`--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
+`--effort` (claude only), `--timeout` seconds per call (default 1200),
+`--no-primer`, `--force` to ignore cached rewrites.
+
+Progress prints per chapter; interrupted runs resume from the `.blasphemy/`
+cache, so re-running after a quota exhaustion only redoes what is missing.
+
+## Providers
+
+The rewrite calls shell out to an agent CLI. `--provider auto` picks the first
+one installed, in the order `claude`, `kiro`.
+
+Binaries are located via `PATH`, then `~/.local/bin`, `/usr/local/bin`,
+`/opt/homebrew/bin` — cron, `make`, and `nohup` shells often lack the login
+PATH. Override explicitly with `BLASPHEMY_CLAUDE_BIN` / `BLASPHEMY_KIRO_BIN`.
+
+Never pass claude's `--bare`: it forces API-key auth and bypasses the
+subscription.
+
+## Quota exhaustion
+
+Long runs outlast a quota window. Failed chapters keep their original text and
+the run continues, so the simplest recovery is to re-run the same command once
+quota returns — cached chapters are skipped. `--check-providers` (or
+`make check`) is a cheap way to see whether a CLI is usable at all.
 
 ## Tests
 
 ```sh
-.venv/bin/pytest
+make test           # or: .venv/bin/pytest -q
 ```
 
 ## Iterating on prompts
 
-Edit `src/blasphemy/prompts/rewrite.md` (or pass `--prompt`), then re-run with
-`--force`. Inspect `.blasphemy/<book>/NNN.src.md` vs `NNN.md` to judge
-rewrites without opening the epub. Log changes in `specs/prompt.md`.
+Edit `src/blasphemy/prompts/body.md` (or pass `--prompt`), then re-run with
+`--force`. Inspect `.blasphemy/<book>/NNN.src.md` vs `NNN.md` to judge rewrites
+without opening the epub. Log changes in `specs/prompt.md`.
