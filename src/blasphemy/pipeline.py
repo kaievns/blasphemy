@@ -8,6 +8,10 @@ from . import blocks, convert, cover, epub
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
+# flat headroom for the apparatus pass, whose budget has a ~220-word floor:
+# small reference chapters (tables, templates) keep their body ~verbatim, so
+# without this a chapter under ~450 words could never pass the ceiling
+APPARATUS_ALLOWANCE = 250
 
 
 @dataclass
@@ -53,8 +57,10 @@ def referenced_anchors(book, chapters: list[epub.Chapter]) -> dict[str, set[str]
 
 def sane(source_md: str, output_md: str) -> bool:
     words_in = max(len(source_md.split()), 1)
-    ratio = len(output_md.split()) / words_in
-    return RATIO_MIN <= ratio <= RATIO_MAX
+    words_out = len(output_md.split())
+    if words_out < words_in * RATIO_MIN:
+        return False
+    return words_out <= words_in * RATIO_MAX + APPARATUS_ALLOWANCE
 
 
 def optimise(

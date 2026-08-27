@@ -28,7 +28,7 @@ Equivalent direct calls:
 Key flags: `--provider` (`claude` default, or `kiro`), `--model` (provider-specific,
 defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
-`--effort` (kiro defaults to `xhigh`), `--timeout` seconds per call (default 2400),
+`--effort` (kiro defaults to `high`), `--timeout` seconds per call (default 2400),
 `--no-primer`, `--force` to ignore cached rewrites.
 
 Progress prints per chapter; interrupted runs resume from the `.blasphemy/`
@@ -54,7 +54,7 @@ Never pass `--bare`: it forces API-key auth and bypasses the subscription.
 
 `kiro-cli chat --no-interactive` (the bare `kiro` command opens the IDE).
 Install with `curl -fsSL https://cli.kiro.dev/install | bash`. Defaults to
-`claude-fable-5` at `xhigh` effort; override with `--model` / `--effort`,
+`claude-fable-5` at `high` effort; override with `--model` / `--effort`,
 list valid ids with `kiro-cli chat --list-models` (which flags fable as an
 internal preview). Constraints that shape the integration, verified against
 kiro-cli 2.19:

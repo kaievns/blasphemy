@@ -138,7 +138,7 @@ KIRO = Provider(
     name="kiro",
     binary="kiro-cli",
     default_model="claude-fable-5",
-    default_effort="xhigh",
+    default_effort="high",
     base_args=("chat", "--no-interactive", "--trust-tools=", "--wrap", "never"),
     model_flag="--model",
     effort_flag="--effort",

@@ -4,6 +4,9 @@ BLASPHEMY := $(VENV)/bin/blasphemy
 BOOK ?=
 PROVIDER ?= claude
 ARGS ?=
+# keep the machine awake for the duration of a run (macOS; empty elsewhere)
+CAFFEINATE := $(shell command -v caffeinate 2>/dev/null)
+CAFFEINATE := $(if $(CAFFEINATE),$(CAFFEINATE) -im,)
 
 .DEFAULT_GOAL := help
 
@@ -35,7 +38,7 @@ list: setup ## list chapters of BOOK without rewriting
 
 run: setup ## optimise BOOK into BOOK.optimised.epub
 	@test -n "$(BOOK)" || { echo "usage: make run BOOK=path.epub"; exit 2; }
-	$(BLASPHEMY) "$(BOOK)" --provider $(PROVIDER) $(ARGS)
+	$(CAFFEINATE) $(BLASPHEMY) "$(BOOK)" --provider $(PROVIDER) $(ARGS)
 
 clean: ## remove build and test artefacts
 	rm -rf .pytest_cache src/*.egg-info

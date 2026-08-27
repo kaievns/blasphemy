@@ -193,11 +193,21 @@ def test_pre_count_mismatch_reported(sample_epub, tmp_path):
     assert "count mismatch" in ch1.detail
 
 
+def test_sane_allows_apparatus_floor_on_small_reference_chapters():
+    words = lambda n: " ".join(["w"] * n)
+    # a 233w availability table kept verbatim + ~220w apparatus = ratio 2.2
+    assert pipeline.sane(words(233), words(514))
+    # but the allowance is flat: it cannot excuse runaway output at scale
+    assert not pipeline.sane(words(2000), words(3400))
+
+
 def test_sane_ratio_bounds():
     words = lambda n: " ".join(["w"] * n)
     assert pipeline.sane(words(100), words(50))
     assert not pipeline.sane(words(100), words(4))
-    assert not pipeline.sane(words(100), words(200))
+    # ceiling = 1.5x + the flat apparatus allowance
+    assert pipeline.sane(words(100), words(400))
+    assert not pipeline.sane(words(100), words(401))
 
 
 def test_workdir_for_is_content_addressed(sample_epub, tmp_path):
