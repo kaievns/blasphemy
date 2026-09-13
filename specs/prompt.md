@@ -33,6 +33,23 @@ Live in `src/blasphemy/prompts/`. Default: `rewrite.md`. Override with
 
 ## Iteration log
 
+- 2026-09-14: options M/N — nested pyramids, chosen over L's flat pyramid
+  after Kai asked which fits multi-point vs sequential chapters. Flat L
+  makes three passes over the whole chapter (redundancy against rule 17)
+  and separates each detail from its reasoning; nested keeps one chapter
+  Bottom line, then every author section as claim → case → detail in the
+  author's order, so each fact lives in one place and any section can be
+  entered cold. Bold first-sentence claims give a second reading depth
+  (bottom line + bold claims) to recover L's stop-early property. M:
+  claims ran 30-53 words (rule 12) and the bottom line regrew into a
+  section preview. N: claim ≤20 words with the because as the next
+  sentence; bottom line 1-3 paragraphs under 60 words each, conclusions
+  only. N Fable ch1: stats 69%, linux 72%, rust 66%; claims avg 16-17
+  words; bottom lines 156-185 words; all tokens/anchors/fences intact.
+  Kai on length: not obsessed, comprehension, absorption speed and
+  friction first — the numeric contract stays only as the compression
+  driver. Samples `experiments/ch1-*-option-{m,n}.md`. Awaiting Kai's
+  read of J vs L vs N.
 - 2026-09-13: option L — pyramid/BLUF chapter structure (Kai's proposal:
   Orient and Pause felt repetitive, arriving two sentences before the body
   said the same thing). Body pass emits fixed layers: Bottom line (claims
