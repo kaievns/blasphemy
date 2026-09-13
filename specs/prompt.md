@@ -33,6 +33,21 @@ Live in `src/blasphemy/prompts/`. Default: `rewrite.md`. Override with
 
 ## Iteration log
 
+- 2026-09-13: option L — pyramid/BLUF chapter structure (Kai's proposal:
+  Orient and Pause felt repetitive, arriving two sentences before the body
+  said the same thing). Body pass emits fixed layers: Bottom line (claims
+  with their because) → Reasoning (structured case, may group items) →
+  Detail (author's material in author's dependency order, self-contained
+  `###` subsections) → Asides (optional, non-load-bearing) → Key points +
+  Check yourself from the apparatus pass; Orient/Watch for/Pauses dropped.
+  Research fit: BLUF is profile rules 3/4/6 pushed to chapter level and a
+  Task-Support organisational scheme; Asides quarantine seductive details
+  instead of interleaving them. Risk: three-layer repetition against rule
+  17 — mitigated by "one canonical statement per claim, lower layers extend,
+  never paraphrase" and verbatim-wording Key points. Fable ch1 samples:
+  stats 75%, linux 67%, rust 65% (`experiments/ch1-*-option-l.md`,
+  prompts `prompt-body-l.md`/`prompt-apparatus-l.md`). Not in production;
+  awaiting Kai's read against J.
 Record notable prompt changes here with date + what/why.
 
 - 2026-08-23: initial version.
