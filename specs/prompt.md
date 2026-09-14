@@ -33,6 +33,23 @@ Live in `src/blasphemy/prompts/`. Default: `rewrite.md`. Override with
 
 ## Iteration log
 
+- 2026-09-14: option O — hologram, from Kai's rejection of M/N ("a summary
+  then the rest intact") and of L's bullet-list second layer. Flat
+  depth-ordered restructure in narrative form: the answer under the title
+  (no heading), then one or two sections giving the shape of the problem
+  in the chapter's own terms, then depth sections with contextual
+  headings, then asides; no fixed layer titles; the author's section
+  order and boundaries are unpacked and repacked; every layer continues
+  the one above and adds — the per-sentence test is "would a reader who
+  has read everything above learn something from it". Fable ch1 bodies:
+  stats 72%, linux 66%, rust 66% (81/74/73% with apparatus). Stats and
+  rust produced a genuine shape layer; linux (a taxonomy chapter) went
+  from the answer straight into renamed author sections. Rust key points
+  ran to 12 bullets. Fable's safeguard refused the apparatus pass 9/9
+  times with a one-phrase change to the apparatus prompt ("depth-ordered
+  form … then the depths"); reverting the phrase fixed it — the generator
+  now caches the body before the apparatus call. Samples
+  `experiments/ch1-*-option-o.md`, prompt `prompt-body-o.md`.
 - 2026-09-14: options M/N — nested pyramids, chosen over L's flat pyramid
   after Kai asked which fits multi-point vs sequential chapters. Flat L
   makes three passes over the whole chapter (redundancy against rule 17)
