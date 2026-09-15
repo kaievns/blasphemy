@@ -3,7 +3,7 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import apparatus, epub, pipeline, primer, providers, report
+from . import apparatus, epub, pipeline, primer, providers, report, style
 
 
 def default_prompt(name: str = "body") -> str:
@@ -134,6 +134,15 @@ def main(argv: list[str] | None = None) -> int:
             f"main argument.]"
         )
         body = call_agent(chapter_md + contract, with_context(body_prompt, chapter))
+        slipped = style.banned(chapter_md, body)
+        if slipped:
+            note = (
+                f"\n\n[Your previous attempt used the banned word(s): "
+                f"{', '.join(slipped)}. Rewrite without them.]"
+            )
+            body = call_agent(
+                chapter_md + contract + note, with_context(body_prompt, chapter)
+            )
         budget = max(220, int(len(body.split()) * 0.10))
         raw = call_agent(
             f"{body}\n\n[Apparatus word cap: {budget} words total across all "

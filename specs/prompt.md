@@ -13,6 +13,9 @@
 - **Original terminology is preserved verbatim.** Never replaced with
   simplified versions for readability — simplify around terms, never
   the terms. (Locked 2026-08-23.)
+- **Banned words: "gate", "provenance", "delve"** in any form, unless the
+  author's own term in that chapter. Enforced by prompt, one body retry,
+  and a `banned words:` note in the chapter result. (Locked 2026-09-15.)
 
 ## Prompt design principles
 
@@ -23,16 +26,26 @@
   restated points.
 - Keep: every fact, number, name, argument step, code block, and any example
   that carries the point (condensed if long).
-- Structure: headings for scannability, short paragraphs, bullets where the
-  content is list-shaped, author's argument order preserved.
+- Structure (hologram, approved 2026-09-15): ordered by depth, not by the
+  author's presentation — the answer under the title, the shape of the
+  problem as narrative, then depth sections with contextual headings, then
+  asides. Every layer continues the one above and adds; nothing is said
+  twice. The author's section order and boundaries do not survive; terms,
+  claims, specifics, code and figures do.
 
 ## Prompt files
 
-Live in `src/blasphemy/prompts/`. Default: `rewrite.md`. Override with
-`--prompt <path>` for experiments.
+Live in `src/blasphemy/prompts/`: `body.md` (hologram body pass, option O),
+`apparatus.md` (Key points + Check yourself), `primer.md`. Override the body
+prompt with `--prompt <path>` for experiments.
 
 ## Iteration log
 
+- 2026-09-15: Kai approved O ("significantly better than all previous
+  versions"). Promoted to production: `body.md` = O prompt, `apparatus.md`
+  = Key points + Check yourself only (Orient/Watch for/Pauses retired).
+  Added the banned-word rule (gate, provenance, delve) with mechanical
+  enforcement in `style.py`.
 - 2026-09-14: option O — hologram, from Kai's rejection of M/N ("a summary
   then the rest intact") and of L's bullet-list second layer. Flat
   depth-ordered restructure in narrative form: the answer under the title

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import blocks, convert, cover, epub
+from . import blocks, convert, cover, epub, style
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
@@ -123,6 +123,9 @@ def optimise(
                         )
                     output_file.write_text(output_md)
                     status, detail = "rewritten", ""
+                    slipped = style.banned(source_md, output_md)
+                    if slipped:
+                        detail = f"banned words: {', '.join(slipped)}"
                 except Exception as error:
                     output_md, status, detail = None, "failed", str(error)
             if output_md is not None:
@@ -137,7 +140,8 @@ def optimise(
                 else:
                     html, lost_anchors = blocks.restore_anchors(html, anchor_ids)
                     if lost_anchors:
-                        detail = f"anchors fell back to top: {', '.join(lost_anchors)}"
+                        note = f"anchors fell back to top: {', '.join(lost_anchors)}"
+                        detail = f"{detail}; {note}" if detail else note
                     html, pre_ok = blocks.restore_pre(
                         html, blocks.extract_pre(chapter.html)
                     )

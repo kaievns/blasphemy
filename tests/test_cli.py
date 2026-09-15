@@ -111,7 +111,7 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     assert "Current chapter" in body_system
     assert "[Length contract:" in rewrite.call_args_list[1].args[0]
     assert "[Apparatus word cap:" in rewrite.call_args_list[2].args[0]
-    assert "study apparatus" in rewrite.call_args_list[2].args[1]
+    assert "retention apparatus" in rewrite.call_args_list[2].args[1]
 
     from blasphemy import epub as bp
 
@@ -126,3 +126,20 @@ def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):
     with patch("blasphemy.providers.rewrite", return_value=rewritten) as rewrite:
         cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--provider", "claude", "--no-primer"])
     assert all("# Book context" not in c.args[1] for c in rewrite.call_args_list)
+
+
+def test_body_retried_once_when_banned_word_slips(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    clean = "# R\n\n" + " ".join(["word"] * 100)
+    dirty = "# R\n\nwe delve\n\n" + " ".join(["word"] * 100)
+    responses = [dirty, clean, APPARATUS_RAW, clean, APPARATUS_RAW]
+    with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
+        assert cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"]) == 0
+    retry = rewrite.call_args_list[1].args[0]
+    assert "banned word(s): delve" in retry
+    assert rewrite.call_count == 5
+
+
+def test_default_prompts_carry_the_ban():
+    assert "# Banned words" in cli.default_prompt("body")
+    assert "# Banned words" in cli.default_prompt("apparatus")

@@ -215,3 +215,11 @@ def test_workdir_for_is_content_addressed(sample_epub, tmp_path):
     assert sample_epub.stem in first.name
     sample_epub.write_bytes(sample_epub.read_bytes() + b" ")
     assert pipeline.workdir_for(sample_epub, tmp_path) != first
+
+
+def test_banned_words_reported_in_detail(sample_epub, tmp_path):
+    rewrite = lambda md, chapter: "# R\n\nwe delve\n\n" + " ".join(["word"] * 100)
+    _, _, results = optimise(sample_epub, tmp_path, rewrite)
+    ch1 = next(r for r in results if r.item_id == "ch1")
+    assert ch1.status == "rewritten"
+    assert "banned words: delve" in ch1.detail
