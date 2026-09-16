@@ -20,7 +20,7 @@ def test_check_providers_reports_each(capsys):
 
 def test_check_providers_shows_kiro_defaults(capsys):
     cli.main(["--check-providers"])
-    assert "claude-fable-5 @ high" in capsys.readouterr().out
+    assert "claude-fable-5.1 @ high" in capsys.readouterr().out
 
 
 def test_check_providers_fails_when_none_installed(monkeypatch, capsys):

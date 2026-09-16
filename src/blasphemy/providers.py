@@ -137,7 +137,7 @@ def kiro_fetch(payload: str) -> str | None:
 KIRO = Provider(
     name="kiro",
     binary="kiro-cli",
-    default_model="claude-fable-5",
+    default_model="claude-fable-5.1",
     default_effort="high",
     base_args=("chat", "--no-interactive", "--trust-tools=", "--wrap", "never"),
     model_flag="--model",

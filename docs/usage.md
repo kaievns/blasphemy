@@ -54,7 +54,7 @@ Never pass `--bare`: it forces API-key auth and bypasses the subscription.
 
 `kiro-cli chat --no-interactive` (the bare `kiro` command opens the IDE).
 Install with `curl -fsSL https://cli.kiro.dev/install | bash`. Defaults to
-`claude-fable-5` at `high` effort; override with `--model` / `--effort`,
+`claude-fable-5.1` at `high` effort; override with `--model` / `--effort`,
 list valid ids with `kiro-cli chat --list-models` (which flags fable as an
 internal preview). Constraints that shape the integration, verified against
 kiro-cli 2.19:

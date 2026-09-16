@@ -63,7 +63,7 @@ def test_kiro_call_shape():
     assert "--trust-tools=" in cmd  # trust nothing; never --trust-all-tools
     assert "--trust-all-tools" not in cmd
     # fable at high effort unless the caller overrides
-    assert cmd[cmd.index("--model") + 1] == "claude-fable-5"
+    assert cmd[cmd.index("--model") + 1] == "claude-fable-5.1"
     assert cmd[cmd.index("--effort") + 1] == "high"
     # no --agent: the default profile configured in kiro-cli applies
     assert "--agent" not in cmd

@@ -15,7 +15,7 @@ Retune the prompts in `src/blasphemy/prompts/` for anyone else.
   default backend
 - Optional alternative: [Kiro CLI](https://kiro.dev) 2.x (`kiro-cli`), selected
   with `--provider kiro`; rides your `kiro-cli login` session and defaults to
-  `claude-fable-5` at `high` effort ([details](docs/usage.md#providers))
+  `claude-fable-5.1` at `high` effort ([details](docs/usage.md#providers))
 
 ## Quickstart
 
