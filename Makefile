@@ -40,6 +40,10 @@ run: setup ## optimise BOOK into BOOK.optimised.epub
 	@test -n "$(BOOK)" || { echo "usage: make run BOOK=path.epub"; exit 2; }
 	$(CAFFEINATE) $(BLASPHEMY) "$(BOOK)" --provider $(PROVIDER) $(ARGS)
 
+rebuild: setup ## reassemble BOOK.optimised.epub from cache, no agent calls
+	@test -n "$(BOOK)" || { echo "usage: make rebuild BOOK=path.epub"; exit 2; }
+	$(BLASPHEMY) "$(BOOK)" --rebuild $(ARGS)
+
 clean: ## remove build and test artefacts
 	rm -rf .pytest_cache src/*.egg-info
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

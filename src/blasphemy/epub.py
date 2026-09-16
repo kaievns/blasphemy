@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -5,6 +6,15 @@ from bs4 import BeautifulSoup
 from ebooklib import ITEM_COVER, ITEM_DOCUMENT, ITEM_IMAGE, epub
 
 DC = "http://purl.org/dc/elements/1.1/"
+
+
+REFERENCE_TITLES = re.compile(
+    r"^(index|glossary|bibliography|references|works cited|notes|"
+    r"(table of )?contents( in detail)?)$",
+    re.I,
+)
+REFERENCE_TYPES = re.compile(r"\b(index|glossary|bibliography|toc|landmarks)\b", re.I)
+REFERENCE_CLASSES = REFERENCE_TYPES
 
 
 @dataclass
@@ -16,6 +26,30 @@ class Chapter:
     html: str
     words: int
     is_nav: bool = False
+    is_reference: bool = False  # index, glossary, bibliography, contents
+
+    @property
+    def passthrough(self) -> bool:
+        return self.is_nav or self.is_reference
+
+
+def _is_reference(soup: BeautifulSoup, title: str) -> bool:
+    """Reference apparatus that must not be rewritten.
+
+    An index or bibliography is a lookup structure, not an argument: a
+    rewrite destroys it (Statistics' index came back as 23 code blocks with
+    an "Orient" paragraph) and burns a chapter's worth of credits doing so.
+    """
+    if REFERENCE_TITLES.match(title.strip()):
+        return True
+    for node in soup.find_all(["body", "section", "nav", "div"], attrs={"epub:type": True}):
+        if REFERENCE_TYPES.search(node["epub:type"]):
+            return True
+    body = soup.body or soup
+    for node in body.find_all(["div", "section"], class_=True, limit=3):
+        if any(REFERENCE_CLASSES.fullmatch(cls) for cls in node["class"]):
+            return True
+    return False
 
 
 def load(path: str | Path) -> epub.EpubBook:
@@ -53,6 +87,7 @@ def chapters(book: epub.EpubBook) -> list[Chapter]:
             Chapter(
                 index, item_id, item.get_name(), title, html, words,
                 is_nav=isinstance(item, epub.EpubNav),
+                is_reference=_is_reference(soup, title),
             )
         )
     return result

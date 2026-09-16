@@ -143,3 +143,18 @@ def test_body_retried_once_when_banned_word_slips(sample_epub, tmp_path, monkeyp
 def test_default_prompts_carry_the_ban():
     assert "# Banned words" in cli.default_prompt("body")
     assert "# Banned words" in cli.default_prompt("apparatus")
+
+
+def test_rebuild_never_calls_an_agent(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    # no agent CLI installed at all: rebuild must not care
+    monkeypatch.setattr(providers.shutil, "which", lambda binary: None)
+    monkeypatch.setattr(providers, "FALLBACK_DIRS", ())
+    out = tmp_path / "o.epub"
+    with patch("blasphemy.providers.rewrite") as rewrite:
+        code = cli.main([str(sample_epub), "-o", str(out), "--rebuild"])
+    rewrite.assert_not_called()
+    assert out.exists()
+    # nothing cached, so every eligible chapter keeps its original text
+    assert "not cached" in capsys.readouterr().out
+    assert code == 1  # uncached chapters are reported as failed, honestly

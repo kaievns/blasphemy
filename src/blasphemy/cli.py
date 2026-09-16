@@ -44,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
         "chapter can exceed 20 minutes)",
     )
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--rebuild", action="store_true",
+        help="reassemble the epub from cached rewrites only; never calls an "
+        "agent, uncached chapters keep their original text",
+    )
     parser.add_argument("--no-primer", action="store_true", help="skip book primer")
     parser.add_argument("--list", action="store_true", help="list chapters and exit")
     return parser
@@ -79,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     provider = providers.resolve(args.provider)
-    if not providers.available(provider):
+    if not args.rebuild and not providers.available(provider):
         other = next(n for n in providers.REGISTRY if n != provider.name)
         print(
             f"error: {providers.binary_for(provider)} not found — install it, set "
@@ -97,19 +102,26 @@ def main(argv: list[str] | None = None) -> int:
     reporter = report.Reporter(len(chapters))
     effort = args.effort or provider.default_effort
     reporter.note(
-        f"{args.epub.name} — {len(chapters)} documents · {provider.name} · "
-        f"{args.model or provider.default_model or 'provider default'}"
-        + (f" · {effort}" if effort else "")
+        f"{args.epub.name} — {len(chapters)} documents · "
+        + (
+            "rebuild from cache, no agent calls"
+            if args.rebuild
+            else f"{provider.name} · "
+            f"{args.model or provider.default_model or 'provider default'}"
+            + (f" · {effort}" if effort else "")
+        )
     )
 
     def call_agent(payload: str, system: str) -> str:
+        if args.rebuild:
+            raise RuntimeError("not cached; rerun without --rebuild to rewrite")
         return providers.rewrite(
             payload, system, provider=provider,
             model=args.model, effort=args.effort, timeout=args.timeout,
         )
 
     book_primer = ""
-    if not args.no_primer:
+    if not args.no_primer and not args.rebuild:
         reporter.start("building book primer")
         book_primer = primer.build(
             chapters,
@@ -154,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         results = pipeline.optimise(
             args.epub, out_path, rewrite, workdir,
-            min_words=args.min_words, force=args.force,
+            min_words=args.min_words, force=args.force, rebuild=args.rebuild,
             progress=reporter.finish,
             starting=lambda chapter: reporter.start(
                 chapter.title or chapter.href

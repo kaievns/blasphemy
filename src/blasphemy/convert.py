@@ -1,3 +1,5 @@
+import html
+
 import markdown as md_lib
 from bs4 import BeautifulSoup
 from markdownify import MarkdownConverter
@@ -13,6 +15,11 @@ class _Converter(MarkdownConverter):
 
     def convert_u(self, el, text, *args, **kwargs):
         return f"<u>{text}</u>"
+
+    def convert_var(self, el, text, *args, **kwargs):
+        # placeholders are usually written <like-this>; unescaped they would
+        # come back as a fake tag and the reader swallows them
+        return f"<var>{html.escape(text, quote=False)}</var>"
 
 
 def html_to_markdown(html: str) -> str:

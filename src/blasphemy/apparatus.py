@@ -33,12 +33,17 @@ def insert_pauses(body: str, pauses: str) -> tuple[str, int, int]:
     return "\n\n".join(paragraphs), inserted, skipped
 
 
+def _is_title(line: str) -> bool:
+    # a `# ` heading, or the token a protected chapter title travels as
+    return line.startswith("# ") or bool(re.match(r"⟦TITLE-\d+[^⟧]*⟧\s*$", line))
+
+
 def _title(source_md: str, body: str) -> tuple[str, str]:
     lines = body.splitlines()
-    if lines and lines[0].startswith("# "):
+    if lines and _is_title(lines[0]):
         return lines[0], "\n".join(lines[1:]).strip()
     for line in source_md.splitlines():
-        if line.startswith("# "):
+        if _is_title(line):
             return line, body
     return "", body
 

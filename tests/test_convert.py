@@ -30,6 +30,18 @@ def test_sup_sub_u_survive_roundtrip():
     assert "<u>underlined</u>" in back
 
 
+def test_var_placeholder_text_is_not_swallowed_as_a_tag():
+    # Rust for Rustaceans ch5: [profile.<profile-name>.package.<crate-name>]
+    html = (
+        "<p><code>[profile.</code><var>&lt;profile-name&gt;</var>"
+        "<code>.package.</code><var>x_y</var></p>"
+    )
+    back = convert.markdown_to_html(convert.html_to_markdown(html))
+    assert "<var>&lt;profile-name&gt;</var>" in back
+    assert "<var>x_y</var>" in back
+    assert "<profile-name>" not in back
+
+
 def test_text_survives_roundtrip():
     md = convert.html_to_markdown(HTML)
     html = convert.markdown_to_html(md)

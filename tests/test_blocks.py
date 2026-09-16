@@ -84,23 +84,59 @@ def test_pre_restored_with_original_markup():
     originals = blocks.extract_pre(PRE_HTML)
     assert len(originals) == 1
     rewritten = "<h1>T</h1><pre><code>typed input output 1</code></pre><p>short</p>"
-    restored, ok = blocks.restore_pre(rewritten, originals)
-    assert ok
+    restored, unmatched = blocks.restore_pre(rewritten, originals)
+    assert unmatched == 0
     assert "<b>typed input</b>" in restored
     assert 'class="CodeAnnotation"' in restored
 
 
-def test_pre_count_mismatch_leaves_output_alone():
-    originals = blocks.extract_pre(PRE_HTML)
-    rewritten = "<p>model merged the code away</p>"
-    restored, ok = blocks.restore_pre(rewritten, originals)
-    assert not ok
+def test_pre_dropped_by_model_costs_only_that_listing():
+    originals = [
+        "<pre><code><b>$ ls</b>\nout</code></pre>",
+        "<pre><code><b>$ rm</b>\ngone</code></pre>",
+        "<pre><code><b>$ cp</b>\ncopied</code></pre>",
+    ]
+    # the model merged the second listing away; the others are verbatim text
+    rewritten = "<pre><code>$ ls\nout</code></pre><p>x</p><pre><code>$ cp\ncopied</code></pre>"
+    restored, unmatched = blocks.restore_pre(rewritten, originals)
+    assert unmatched == 0
+    assert "<b>$ ls</b>" in restored and "<b>$ cp</b>" in restored
+    assert "$ rm" not in restored
+
+
+def test_pre_edited_code_paired_when_text_mostly_overlaps():
+    originals = [
+        "<pre><code><b>a</b> 1</code></pre>",
+        "<pre><code><b>$ ls -l /dev</b>\nbrw-rw---- 1 root disk 8, 1 sda1</code></pre>",
+    ]
+    # the model trimmed one column of the listing output
+    rewritten = (
+        "<pre><code>a 1</code></pre>"
+        "<pre><code>$ ls -l /dev\nbrw-rw---- 1 root disk sda1</code></pre>"
+    )
+    restored, unmatched = blocks.restore_pre(rewritten, originals)
+    assert unmatched == 0
+    assert "<b>$ ls -l /dev</b>" in restored  # the edited one got its original back
+
+
+def test_pre_unrelated_single_leftover_is_not_paired():
+    originals = ["<pre><code><b>$ ls</b></code></pre>"]
+    rewritten = "<pre><code>fn main() { println!() }</code></pre>"
+    restored, unmatched = blocks.restore_pre(rewritten, originals)
+    assert unmatched == 1 and restored == rewritten
+
+
+def test_pre_without_any_match_stays_fenced_and_is_counted():
+    originals = ["<pre><code><b>a</b></code></pre>", "<pre><code><b>b</b></code></pre>"]
+    rewritten = "<pre><code>something else entirely</code></pre>"
+    restored, unmatched = blocks.restore_pre(rewritten, originals)
+    assert unmatched == 1
     assert restored == rewritten
 
 
 def test_no_pres_is_ok():
-    restored, ok = blocks.restore_pre("<p>hello</p>", [])
-    assert ok
+    restored, unmatched = blocks.restore_pre("<p>hello</p>", [])
+    assert unmatched == 0
 
 
 OPENER = (
@@ -262,3 +298,173 @@ def test_token_survives_markdown_roundtrip():
     restored, missing = blocks.restore(convert.markdown_to_html(md), protected)
     assert missing == []
     assert "<msup>" in restored
+
+
+# No Starch chapter opener: styled title in <header>, art that floats into
+# the title's bottom margin, and a large-type lead paragraph
+OPENER_HTML = (
+    '<section><header><h1 class="chapter"><span class="ChapterNumber">1</span>'
+    '<br/><span class="ChapterTitle">Foundations</span></h1></header>'
+    '<figure class="opener"><img alt="" src="art.png"/></figure>'
+    '<p class="ChapterIntro">As you dive into Rust, fundamentals matter.</p>'
+    "<p>Read it top to bottom.</p></section>"
+)
+
+
+def test_styled_title_protected_with_readable_gist():
+    html, protected = blocks.protect(OPENER_HTML)
+    assert "<h1" not in html
+    assert "⟦TITLE-0: 1 Foundations⟧" in html
+    assert protected["TITLE-0"].startswith("<header>")
+    # the token keeps its place as the first line of the markdown
+    assert convert.html_to_markdown(html).startswith("⟦TITLE-0: 1 Foundations⟧")
+
+
+def test_plain_title_is_left_to_markdown():
+    html, protected = blocks.protect("<h1>Chapter One</h1><p>Text.</p>")
+    assert "TITLE" not in " ".join(protected)
+    assert "<h1>Chapter One</h1>" in html
+
+
+def test_title_roundtrip_restores_header_markup_unwrapped():
+    html, protected = blocks.protect(OPENER_HTML)
+    md = convert.html_to_markdown(html)
+    restored, missing = blocks.restore(convert.markdown_to_html(md), protected)
+    assert missing == []
+    assert '<h1 class="chapter"><span class="ChapterNumber">1</span>' in restored
+    assert "<p><header>" not in restored.replace("\n", "")
+    assert "<h1>1 Foundations</h1>" not in restored
+
+
+def test_lead_paragraph_class_carried_to_rewrite():
+    rewritten = (
+        '<header><h1 class="chapter">1 Foundations</h1></header>'
+        '<figure class="opener"><img src="art.png"/></figure>'
+        '<p><a id="Page_1"></a></p>'
+        "<p>Rewritten opening paragraph.</p><p>Second paragraph.</p>"
+    )
+    out = blocks.carry_lead_class(rewritten, OPENER_HTML)
+    assert '<p class="ChapterIntro">Rewritten opening paragraph.</p>' in out
+    assert "<p>Second paragraph.</p>" in out  # only the lead is styled
+
+
+def test_lead_class_not_applied_when_original_has_none():
+    plain = "<h1>T</h1><p>Plain lead.</p>"
+    out = blocks.carry_lead_class("<h1>T</h1><p>New lead.</p>", plain)
+    assert out == "<h1>T</h1><p>New lead.</p>"
+
+
+def test_title_does_not_shift_other_token_ids():
+    # caches written before titles were protected say FIGURE-0; keep it so
+    _, protected = blocks.protect(OPENER_HTML)
+    assert list(protected) == ["TITLE-0", "FIGURE-0"]
+
+
+def test_cached_plain_heading_swapped_for_original_title():
+    # a rewrite cached before titles were protected carries `# 1 Foundations`
+    _, protected = blocks.protect(OPENER_HTML)
+    cached = convert.markdown_to_html(
+        "# 1 Foundations\n\nRewritten lead.\n\n⟦FIGURE-0: image⟧"
+    )
+    restored, missing = blocks.restore(cached, protected)
+    assert missing == []
+    assert '<h1 class="chapter"><span class="ChapterNumber">1</span>' in restored
+    assert "<h1>1 Foundations</h1>" not in restored
+    assert restored.count("<h1") == 1
+
+
+def test_title_without_any_heading_goes_on_top_not_failure():
+    _, protected = blocks.protect(OPENER_HTML)
+    restored, missing = blocks.restore("<p>No heading at all.</p>", protected)
+    assert "TITLE-0" not in missing
+    assert restored.startswith("<header>")
+
+
+CAPTIONED_HTML = (
+    "<pre><code>ls</code></pre>"
+    '<p class="CodeListingCaption"><a id="listing2-1">Listing 2-1</a>: Listing files</p>'
+    '<figure><figcaption class="TableTitle"><p><a id="table2-1">Table 2-1</a>: '
+    "Special Characters</p></figcaption>"
+    '<table border="1"><tr><td>*</td></tr></table></figure>'
+    "<p>Body text mentioning Table 2-1 in passing.</p>"
+)
+
+
+def test_listing_caption_class_restored_by_label():
+    rewritten = (
+        "<pre><code>ls</code></pre>"
+        '<p><a id="listing2-1"></a>Listing 2-1: Listing files</p>'
+        "<p>Prose.</p>"
+    )
+    out = blocks.restore_captions(rewritten, CAPTIONED_HTML)
+    assert '<p class="CodeListingCaption"><a id="listing2-1">Listing 2-1</a>: Listing files</p>' in out
+    assert "<p>Prose.</p>" in out
+
+
+def test_table_title_rewrapped_into_figure():
+    rewritten = (
+        '<p><a id="table2-1"></a>Table 2-1: Special Characters</p>'
+        "<table><tr><td>*</td></tr></table>"
+        "<p>Body text mentioning Table 2-1 in passing.</p>"
+    )
+    out = blocks.restore_captions(rewritten, CAPTIONED_HTML)
+    assert out.startswith('<figure><figcaption class="TableTitle">')
+    assert "</figcaption><table>" in out.replace("\n", "")
+    # the prose mention is not a caption: it does not start with the label
+    assert "<p>Body text mentioning Table 2-1 in passing.</p>" in out
+
+
+def test_captions_untouched_when_original_has_none():
+    html = "<p>Table 1-1: something</p>"
+    assert blocks.restore_captions(html, "<p>Table 1-1: something</p>") == html
+
+
+def test_image_figure_captions_are_not_duplicated_from_prose():
+    original = (
+        '<figure><img src="a.png"/><figcaption><p><a id="figure1-1">Figure 1-1</a>: '
+        "Overview</p></figcaption></figure>"
+    )
+    # older cache: the model also wrote the caption as a paragraph
+    rewritten = original + "<p>Figure 1-1: Overview of the system</p>"
+    assert blocks.restore_captions(rewritten, original) == rewritten
+
+
+# No Starch callout, verbatim shape from Rust for Rustaceans
+NOTE_HTML = (
+    '<p>Before.</p><aside epub:type="sidebar"><div class="top hr"><hr/></div>'
+    '<section class="note"><h2><span class="NoteHead">Note</span></h2>'
+    "<p>Technically, the value of <code>string</code> also includes the length.</p>"
+    '<div class="bottom hr"><hr/></div></section></aside><p>After.</p>'
+)
+
+
+def test_notes_are_not_protected_the_model_restructures_them():
+    html, protected = blocks.protect(NOTE_HTML)
+    assert "NOTE" not in " ".join(protected)
+    # the model sees the note as ordinary content it may dissolve or keep
+    assert "## Note" in convert.html_to_markdown(html)
+
+
+def test_kept_note_is_reboxed_in_publisher_shell():
+    rewritten = convert.markdown_to_html(
+        "Before.\n\n## Note\n\nThe value of `string` also carries its length.\n\nAfter."
+    )
+    out = blocks.restyle_notes(rewritten, NOTE_HTML)
+    assert '<span class="NoteHead">Note</span>' in out
+    assert "carries its length" in out  # the model's text, not the original
+    assert "also includes the length" not in out
+    assert "<h2>Note</h2>" not in out
+    assert "<p>Before.</p>" in out and "<p>After.</p>" in out
+
+
+def test_dissolved_note_is_left_alone():
+    rewritten = "<p>Before. Its value also carries the length. After.</p>"
+    assert blocks.restyle_notes(rewritten, NOTE_HTML) == rewritten
+
+
+def test_docbook_admonition_shell_is_recognised():
+    original = '<div class="warning"><h3 class="title">Warning</h3><p>Careful.</p></div>'
+    rewritten = "<h3>Warning</h3><p>Mind the gap.</p>"
+    out = blocks.restyle_notes(rewritten, original)
+    assert out.startswith('<div class="warning">')
+    assert "Mind the gap." in out and "Careful." not in out

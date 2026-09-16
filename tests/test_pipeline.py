@@ -186,11 +186,13 @@ def test_pre_markup_restored_in_output(sample_epub, tmp_path):
     assert "count mismatch" not in ch1_result.detail
 
 
-def test_pre_count_mismatch_reported(sample_epub, tmp_path):
-    rewrite = lambda md, chapter: "# R\n\n" + " ".join(["word"] * 100)
+def test_unmatched_pre_reported_not_failed(sample_epub, tmp_path):
+    # the model regenerated code that matches no original listing
+    rewrite = lambda md, chapter: "# R\n\n```\nnot the original code\n```\n\n" + " ".join(["word"] * 100)
     _, _, results = optimise(sample_epub, tmp_path, rewrite)
     ch1 = next(r for r in results if r.item_id == "ch1")
-    assert "count mismatch" in ch1.detail
+    assert ch1.status == "rewritten"
+    assert "1 code block(s) left fenced" in ch1.detail
 
 
 def test_sane_allows_apparatus_floor_on_small_reference_chapters():
@@ -223,3 +225,18 @@ def test_banned_words_reported_in_detail(sample_epub, tmp_path):
     ch1 = next(r for r in results if r.item_id == "ch1")
     assert ch1.status == "rewritten"
     assert "banned words: delve" in ch1.detail
+
+
+def test_rebuild_never_evicts_cache_on_unrestorable_chapter(math_epub, tmp_path):
+    # first run caches a rewrite that drops the MATH token
+    out, workdir, _ = optimise(
+        math_epub, tmp_path, lambda md, ch: "# M\n\n" + " ".join(["w"] * 100)
+    )
+    (workdir / "000.md").write_text("# M\n\n" + " ".join(["w"] * 100))
+    before = sorted(p.name for p in workdir.iterdir())
+    _, _, results = optimise(
+        math_epub, tmp_path, lambda md, ch: (_ for _ in ()).throw(AssertionError),
+        rebuild=True,
+    )
+    assert results[0].status == "failed" and "MATH-0" in results[0].detail
+    assert sorted(p.name for p in workdir.iterdir()) == before

@@ -110,7 +110,9 @@ term in the chapter you are given. Pick the plain word instead.
 Reproduce every ⟦...⟧ token verbatim — tokens stand in for figures,
 images, formulas, diagrams and link anchors, and the text after the colon
 says what each one holds. Place each where its content is needed in the
-new structure. Keep markdown images (`![...](...)`) and intra-book links.
+new structure. A ⟦TITLE-…⟧ token *is* the chapter title: keep it as the
+first line, alone, and add no heading of your own above or below it.
+Keep markdown images (`![...](...)`) and intra-book links.
 Non-prose reference material (tables, glossaries, notes) is lightly
 cleaned, never rewritten. No summaries or questions — a later pass adds
 apparatus. Output only the rewritten chapter as markdown, no preamble.

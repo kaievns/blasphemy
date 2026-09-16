@@ -10,7 +10,7 @@ EXCERPT_WORDS = 120
 def excerpts(chapters: list[Chapter], min_words: int = 200) -> str:
     lines = []
     for chapter in chapters:
-        if chapter.is_nav or chapter.words < min_words:
+        if chapter.passthrough or chapter.words < min_words:
             continue
         opening = " ".join(convert.html_to_markdown(chapter.html).split()[:EXCERPT_WORDS])
         lines.append(f"## Chapter {chapter.index}: {chapter.title or chapter.href}")

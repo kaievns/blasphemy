@@ -72,3 +72,13 @@ def test_pause_inserted_at_locator():
     out, inserted, skipped = apparatus.insert_pauses(BODY, apparatus.section(RAW, "PAUSES"))
     assert inserted == 1 and skipped == 0
     assert out.index("ends exactly like this.") < out.index("**Pause:**") < out.index("Para five.")
+
+
+def test_title_token_recognised_as_chapter_title():
+    body = "⟦TITLE-0: 1 Foundations⟧\n\nThe answer paragraph."
+    raw = "=== ORIENT ===\nWhat this is.\n\n=== KEY POINTS ===\n- One."
+    out = apparatus.assemble("⟦TITLE-0: 1 Foundations⟧\n\nsource", body, raw)
+    lines = out.split("\n\n")
+    assert lines[0] == "⟦TITLE-0: 1 Foundations⟧"
+    assert lines[1].startswith("**Orient.**")
+    assert "The answer paragraph." in out

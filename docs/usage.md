@@ -14,6 +14,7 @@ make test
 make run  BOOK=book.epub                          # → book.optimised.epub
 make run  BOOK=book.epub PROVIDER=kiro
 make run  BOOK=book.epub ARGS='--force --only 8'
+make rebuild BOOK=book.epub                       # reassemble from cache, no agent calls
 make list BOOK=book.epub                          # inspect chapters, no rewriting
 ```
 
@@ -33,6 +34,12 @@ defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 
 Progress prints per chapter; interrupted runs resume from the `.blasphemy/`
 cache, so re-running after a quota exhaustion only redoes what is missing.
+
+`--rebuild` reassembles the epub from cached rewrites and never calls an
+agent: it is the way to pick up a pipeline fix (markup restoration, styling)
+on an already-processed book without paying for the rewrites again. Uncached
+chapters keep their original text and are reported as failed, and the cache
+is never evicted in this mode.
 
 ## Providers
 
@@ -82,7 +89,8 @@ kiro-cli 2.19:
   by exact payload, then the session is deleted to keep the store tidy.
   Sanitized stdout remains as a fallback: if a kiro update ever changes the
   store schema, runs keep working but code-bearing chapters will show the
-  `count mismatch` note — that's the signal to revisit this integration.
+  `code block(s) left fenced` note — that's the signal to revisit this
+  integration.
 - **Pin 2.x.** Kiro CLI 3.0 drops the non-TUI path that headless mode uses.
 
 ## Quota exhaustion

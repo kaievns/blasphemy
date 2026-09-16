@@ -103,3 +103,49 @@ def test_replace_content_roundtrip(sample_epub, tmp_path):
     assert "quick brown fox" not in ch1.html
     ch2 = next(c for c in chapters if c.item_id == "ch2")
     assert "quick brown fox" in ch2.html
+
+
+
+def _doc(tmp_path, body, name):
+    book = eb.EpubBook()
+    book.set_identifier("ref-id")
+    book.set_title("Ref Book")
+    book.set_language("en")
+    ch = eb.EpubHtml(title="x", file_name=f"{name}.xhtml", uid=name)
+    ch.set_content(body.encode())
+    book.add_item(ch)
+    book.toc = (ch,)
+    book.spine = [ch]
+    book.add_item(eb.EpubNcx())
+    book.add_item(eb.EpubNav())
+    path = tmp_path / f"{name}.epub"
+    epub.save(book, path)
+    return epub.chapters(epub.load(path))[0]
+
+
+def test_reference_documents_detected_by_title_type_or_class(tmp_path):
+    by_title = _doc(tmp_path, "<html><body><h1>Index</h1><p>a, 1</p></body></html>", "a")
+    by_type = _doc(
+        tmp_path,
+        '<html><body><section epub:type="bibliography"><h1>Works</h1></section></body></html>',
+        "b",
+    )
+    by_class = _doc(
+        tmp_path, '<html><body><div class="index"><h1>Terms</h1></div></body></html>', "c"
+    )
+    assert by_title.is_reference and by_type.is_reference and by_class.is_reference
+    assert all(c.passthrough for c in (by_title, by_type, by_class))
+
+
+def test_ordinary_chapter_and_appendix_are_not_reference(tmp_path):
+    chapter = _doc(
+        tmp_path,
+        '<html><body epub:type="backmatter"><h1>Appendix A</h1><p>text</p></body></html>',
+        "d",
+    )
+    intro = _doc(
+        tmp_path,
+        "<html><body><h1>Introduction</h1><ul><li>a</li><li>b</li></ul></body></html>",
+        "e",
+    )
+    assert not chapter.is_reference and not intro.is_reference

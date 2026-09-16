@@ -33,7 +33,8 @@ Flags: [`docs/usage.md`](docs/usage.md).
 
 ## How it works
 
-1. Walk the epub spine; skip front matter, nav, and reference pages.
+1. Walk the epub spine; skip nav, short front matter, and reference pages
+   (index, glossary, bibliography, contents).
 2. One cheap pass builds a **book primer** (arc, chapter scopes, canonical
    terminology) that is prepended to every chapter call.
 3. Per chapter, two calls: a **body pass** (re-express at 55–70% length) and an
@@ -41,8 +42,9 @@ Flags: [`docs/usage.md`](docs/usage.md).
 4. Assemble deterministically, then rebuild the epub with original styling,
    code markup, images, anchors, and metadata intact.
 
-Fragile markup (MathML, inline SVG, link anchors) travels through the rewrite as
-opaque tokens and is re-injected afterwards, so it cannot be paraphrased away.
+Fragile markup (MathML, inline SVG, figures, chapter titles, link anchors)
+travels through the rewrite as opaque tokens and is re-injected afterwards,
+so it cannot be paraphrased away.
 Every chapter's input and output is cached under `.blasphemy/`, making runs
 resumable and prompt changes diffable. Design notes live in [`specs/`](specs/),
 operational notes in [`docs/`](docs/).

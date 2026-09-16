@@ -72,6 +72,7 @@ def optimise(
     skip: set[int] | None = None,
     only: set[int] | None = None,
     force: bool = False,
+    rebuild: bool = False,  # read-only reassembly: never evict the cache
     title_suffix: str = " (Optimised)",
     badge_text: str | None = "OPTIMISED",
     progress: Callable[[Result], None] = lambda r: None,
@@ -98,7 +99,7 @@ def optimise(
         output_file = workdir / f"{chapter.index:03d}.md"
 
         if (
-            chapter.is_nav
+            chapter.passthrough
             or chapter.words < min_words
             or chapter.index in (skip or set())
             or (only is not None and chapter.index not in only)
@@ -133,8 +134,9 @@ def optimise(
                     convert.markdown_to_html(output_md), protected
                 )
                 if missing:
-                    (workdir / f"{chapter.index:03d}.failed.md").write_text(output_md)
-                    output_file.unlink(missing_ok=True)
+                    if not rebuild:
+                        (workdir / f"{chapter.index:03d}.failed.md").write_text(output_md)
+                        output_file.unlink(missing_ok=True)
                     output_md, status = None, "failed"
                     detail = f"lost protected blocks: {', '.join(missing)}"
                 else:
@@ -142,12 +144,15 @@ def optimise(
                     if lost_anchors:
                         note = f"anchors fell back to top: {', '.join(lost_anchors)}"
                         detail = f"{detail}; {note}" if detail else note
-                    html, pre_ok = blocks.restore_pre(
+                    html, unmatched = blocks.restore_pre(
                         html, blocks.extract_pre(chapter.html)
                     )
-                    if not pre_ok:
-                        note = "code blocks left fenced (count mismatch)"
+                    if unmatched:
+                        note = f"{unmatched} code block(s) left fenced (no matching original)"
                         detail = f"{detail}; {note}" if detail else note
+                    html = blocks.carry_lead_class(html, chapter.html)
+                    html = blocks.restore_captions(html, chapter.html)
+                    html = blocks.restyle_notes(html, chapter.html)
                     # tokens from a cache written by an older pipeline are
                     # unrestorable here; never ship them to the reader
                     html = blocks.strip_tokens(html)

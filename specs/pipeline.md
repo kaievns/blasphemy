@@ -57,10 +57,59 @@ output evicted from cache into `NNN.failed.md`).
 
 Code listings are deliberately *not* tokenized: the model reads and rewrites
 around real fenced code, and the original `<pre>` markup (styled spans,
-listing annotations, bolded input) is swapped back positionally when the
-fence count matches. This relies on the provider returning the model's
-markdown faithfully — see the kiro session-store note in `docs/usage.md`
-for how that is guaranteed there.
+listing annotations, bolded input) is swapped back afterwards. Blocks are
+matched by whitespace-normalised text, so a listing the model dropped or
+merged costs that listing alone (positional pairing cost the whole chapter:
+How Linux Works had seven chapters with one listing off and lost bold
+typed-input on 154 of 382 listings). Leftovers are paired in order only
+when their counts agree *and* the word overlap is ≥ 0.6 — a lone unrelated
+leftover is a coin toss, not an edit. Whatever stays unmatched remains
+fenced and is counted in the chapter note. This relies on the provider
+returning the model's markdown faithfully — see the kiro session-store note
+in `docs/usage.md` for how that is guaranteed there.
+
+Listing captions (`p.CodeListingCaption`) and table titles
+(`figcaption.TableTitle` inside a `<figure>` around the table) travel as
+prose and come back as plain paragraphs. `restore_captions` matches them to
+the originals by label ("Table 2-1") and copies the original element over,
+re-wrapping an adjacent `<table>` into its `<figure>`. Image figures are
+excluded: their caption travels inside the protected figure, and an older
+cache that also kept the caption as prose would otherwise get it twice.
+
+`<var>` passes through as inline HTML with its text escaped, like `<sup>`.
+Placeholders are written `<profile-name>`; unescaped they came back as a fake
+tag and the reader swallowed them, so `[profile.<profile-name>.package.]`
+read as `[profile..package.]`.
+
+### Callouts are content, not markup
+
+Notes, tips, warnings and sidebars are deliberately *not* protected. They
+are part of the chapter's argument and the restructuring is free to
+dissolve them into the prose, gather them into the asides layer, or keep
+them: on the four sample books the model did all three, and 98–99% of each
+note's distinctive terms are present in the rewritten chapters. Tokenising
+them (tried 2026-09-16, reverted the same day) would have frozen every
+note in place as an opaque box, defeating the compression the prompt asks
+for.
+
+What *is* restored is styling for the notes the model chose to keep as a
+`## Note` heading plus paragraphs: `restyle_notes` reuses the original
+callout of the same label (No Starch's `<aside epub:type="sidebar"><section
+class="note">`, DocBook's `div.note|tip|warning|…`) as a shell, swapping
+its body for the rewritten paragraphs, so the label, rules and italics come
+back around the model's text. A dissolved note is left alone. The chapter
+title detector skips headings inside callouts, or a chapter without a
+styled title would take a note's "Note" heading as the title.
+
+### Reference documents
+
+Indexes, glossaries, bibliographies and contents pages pass through
+untouched (`Chapter.is_reference`, detected by title, `epub:type`, or a
+wrapper `div.index|toc`). They are lookup structures, not arguments: a
+rewrite destroys them (Statistics' index came back as 23 code blocks with an
+"Orient" paragraph) and costs a chapter's worth of credits doing it.
+Structural ratios are deliberately not used — Rust's Introduction has more
+list items than paragraphs and must still be rewritten.
 
 ## Rewrite architecture (locked 2026-08-25, after A–K sample iterations)
 
@@ -118,6 +167,29 @@ If a token is missing from the output, the wrapper is re-applied by matching
 the image `src` before the chapter is failed. That rescues rewrites cached
 before protection existed, so repairing an already-processed book is a
 rebuild from cache with no model calls.
+
+### Chapter titles and lead paragraphs
+
+The chapter title is protected the same way (`⟦TITLE-0: 1 Foundations⟧`)
+when its markup carries styling — a class on the heading, styled child
+spans, or a `<header>` wrapper, which is taken whole. `# Title` flattens all
+of it to a bare `<h1>`, and on No Starch books that broke the opener layout
+twice over: the centred number/title spans were lost, and `figure.opener`
+(`margin-top: -3em; float: left`) is designed to float into `h1.chapter`'s
+3.25em bottom margin, so without it the art sat on top of the heading. A
+plain `<h1>text</h1>` is left to markdown, which reproduces it exactly.
+The prompt tells the model the token *is* the title and to add no heading of
+its own; `apparatus.assemble` recognises the token as the title line so the
+Orient block lands under it.
+
+The lead paragraph is rewritten, so its class cannot travel as a token.
+Instead the original lead's class (`p.ChapterIntro`: 1.3em, no indent) is
+copied onto the rewrite's first non-empty paragraph after the heading.
+
+A `<p>` that markdown wraps around adjacent tokens — the title and the
+opener art land on consecutive lines — is unwrapped when every child is a
+restored block, so `<p><header>…</header><figure>…</figure></p>` becomes
+valid siblings.
 
 ## Cross-chapter consistency (layers, locked 2026-08-23)
 
