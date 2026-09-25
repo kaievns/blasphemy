@@ -5,6 +5,10 @@ import pytest
 from blasphemy import cli, providers
 
 
+# a body above the refusal floor for the ~490-word sample chapters
+BODY = "# R\n\n" + " ".join(["word"] * 300)
+
+
 @pytest.fixture(autouse=True)
 def providers_installed(monkeypatch):
     # keep the suite independent of which agent CLIs this machine has
@@ -94,8 +98,7 @@ Skeleton sentence.
 def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     out = tmp_path / "out.epub"
-    body = "# R\n\n" + " ".join(["word"] * 100)
-    responses = ["PRIMER"] + [body, APPARATUS_RAW] * 2
+    responses = ["PRIMER"] + [BODY, APPARATUS_RAW] * 2
     with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
         code = cli.main([str(sample_epub), "-o", str(out), "--provider", "claude", "--model", "sonnet"])
     assert code == 0
@@ -130,8 +133,8 @@ def test_no_primer_flag(sample_epub, tmp_path, monkeypatch):
 
 def test_body_retried_once_when_banned_word_slips(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    clean = "# R\n\n" + " ".join(["word"] * 100)
-    dirty = "# R\n\nwe delve\n\n" + " ".join(["word"] * 100)
+    clean = BODY
+    dirty = "# R\n\nwe delve\n\n" + " ".join(["word"] * 300)
     responses = [dirty, clean, APPARATUS_RAW, clean, APPARATUS_RAW]
     with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
         assert cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"]) == 0
@@ -158,3 +161,79 @@ def test_rebuild_never_calls_an_agent(sample_epub, tmp_path, monkeypatch, capsys
     # nothing cached, so every eligible chapter keeps its original text
     assert "not cached" in capsys.readouterr().out
     assert code == 1  # uncached chapters are reported as failed, honestly
+
+
+PRODUCTION_RAW = """=== KEY POINTS ===
+- Claim.
+
+=== CHECK YOURSELF ===
+1. Why?
+
+=== ANSWERS ===
+1. Because.
+"""
+
+
+def run_one(sample_epub, tmp_path, responses, *extra):
+    out = tmp_path / "o.epub"
+    with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
+        code = cli.main([str(sample_epub), "-o", str(out), "--no-primer", "--only", "1", *extra])
+    return code, rewrite
+
+
+def body_file_for(sample_epub):
+    from blasphemy import pipeline
+
+    return pipeline.chapter_file(pipeline.workdir_for(sample_epub), 1, "body")
+
+
+def test_body_kept_when_apparatus_call_fails(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code, _ = run_one(sample_epub, tmp_path, [BODY, RuntimeError("quota")])
+    assert code == 1
+    assert body_file_for(sample_epub).read_text() == BODY
+
+    code, rewrite = run_one(sample_epub, tmp_path, [PRODUCTION_RAW])
+    assert code == 0
+    assert rewrite.call_count == 1
+    assert "[Apparatus word cap:" in rewrite.call_args.args[0]
+
+
+def test_force_ignores_cached_body(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    run_one(sample_epub, tmp_path, [BODY, RuntimeError("quota")])
+    fresh = BODY + " fresh"
+    code, rewrite = run_one(sample_epub, tmp_path, [fresh, PRODUCTION_RAW], "--force")
+    assert code == 0 and rewrite.call_count == 2
+    assert body_file_for(sample_epub).read_text() == fresh
+
+
+def test_apparatus_retried_once_without_key_points(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code, rewrite = run_one(sample_epub, tmp_path, [BODY, "I'd rather not.", PRODUCTION_RAW])
+    assert code == 0
+    assert rewrite.call_count == 3
+    assert "no === KEY POINTS === section" in rewrite.call_args_list[2].args[0]
+
+
+def test_apparatus_without_key_points_twice_fails_and_keeps_body(
+    sample_epub, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    code, _ = run_one(sample_epub, tmp_path, [BODY, "nothing", "still nothing"])
+    assert code == 1
+    assert "no Key points twice" in capsys.readouterr().out
+    assert body_file_for(sample_epub).exists()
+
+
+def test_cut_off_body_fails_before_the_apparatus_call(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    cut = BODY + "\n\n### ⟦AN"
+    code, rewrite = run_one(sample_epub, tmp_path, [cut])
+    assert code == 1
+    assert rewrite.call_count == 1
+    assert not body_file_for(sample_epub).exists()
+    from blasphemy import pipeline
+
+    failed = pipeline.chapter_file(pipeline.workdir_for(sample_epub), 1, "failed")
+    assert failed.read_text() == cut

@@ -82,3 +82,28 @@ def test_title_token_recognised_as_chapter_title():
     assert lines[0] == "⟦TITLE-0: 1 Foundations⟧"
     assert lines[1].startswith("**Orient.**")
     assert "The answer paragraph." in out
+
+
+PRODUCTION_RAW = """=== KEY POINTS ===
+- Claim one.
+
+=== CHECK YOURSELF ===
+1. Why does X imply Y?
+
+=== ANSWERS ===
+1. Because Z.
+"""
+
+
+def test_assemble_production_shape_without_orient():
+    final = apparatus.assemble("# Src Title\n\nx", BODY, PRODUCTION_RAW)
+    assert "Orient" not in final
+    order = [final.index(s) for s in ("Para five.", "## Key points", "## Check yourself", "**Answers**")]
+    assert order == sorted(order)
+    assert "- Claim one." in final and "1. Because Z." in final
+
+
+def test_sections_tolerate_delimiter_drift():
+    raw = "=== Key Points === \r\n- a\r\n\r\n===CHECK YOURSELF===\r\n1. q\r\n"
+    assert apparatus.section(raw, "KEY POINTS") == "- a"
+    assert apparatus.section(raw, "CHECK YOURSELF") == "1. q"

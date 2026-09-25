@@ -240,3 +240,83 @@ def test_rebuild_never_evicts_cache_on_unrestorable_chapter(math_epub, tmp_path)
     )
     assert results[0].status == "failed" and "MATH-0" in results[0].detail
     assert sorted(p.name for p in workdir.iterdir()) == before
+
+
+def test_unclosed_token_detected():
+    assert pipeline.unclosed_token("text\n\n### ⟦AN")
+    assert pipeline.unclosed_token("⟦ANCHOR:a⟧ ok ⟦MATH-0: x")
+    assert pipeline.unclosed_token("⟦MATH-0: x ⟦ANCHOR:a⟧")
+    assert not pipeline.unclosed_token("⟦ANCHOR:a⟧ ok ⟦MATH-0: x⟧ fine")
+    assert not pipeline.unclosed_token("no tokens at all")
+
+
+def test_body_problem_flags_cut_off_and_refused_bodies():
+    source = " ".join(["w"] * 1000)
+    whole = "# T\n\n" + " ".join(["w"] * 600)
+    assert pipeline.body_problem(source, whole) == ""
+    assert "token" in pipeline.body_problem(source, whole + "\n\n### ⟦AN")
+    assert "heading" in pipeline.body_problem(source, whole + "\n\n## Next part\n")
+    assert "1%" in pipeline.body_problem(source, "I can't help with that chapter, sorry.")
+
+
+def test_body_problem_allows_a_closing_code_fence():
+    source = " ".join(["w"] * 100)
+    body = " ".join(["w"] * 60) + "\n\n```\n# a shell comment\n```"
+    assert pipeline.body_problem(source, body) == ""
+
+
+def test_cut_off_output_fails_and_is_not_cached(sample_epub, tmp_path):
+    rewrite = lambda md, ch: "# R\n\n" + " ".join(["word"] * 100) + "\n\n### ⟦AN"
+    _, workdir, results = optimise(sample_epub, tmp_path, rewrite, only={1})
+    ch1 = next(r for r in results if r.item_id == "ch1")
+    assert ch1.status == "failed" and "cut off" in ch1.detail
+    assert not pipeline.chapter_file(workdir, 1).exists()
+    assert pipeline.chapter_file(workdir, 1, "failed").exists()
+
+
+def test_cut_off_cache_is_rewritten_not_shipped(sample_epub, tmp_path):
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    pipeline.chapter_file(workdir, 1).write_text("# R\n\n" + " ".join(["w"] * 100) + "\n\n### ⟦AN")
+    calls = []
+
+    def rewrite(md, ch):
+        calls.append(ch.index)
+        return "# R\n\n" + " ".join(["word"] * 100)
+
+    results = pipeline.optimise(sample_epub, tmp_path / "o.epub", rewrite, workdir, only={1})
+    assert calls == [1]
+    assert next(r for r in results if r.item_id == "ch1").status == "rewritten"
+    assert "⟦AN" not in pipeline.chapter_file(workdir, 1).read_text()
+
+
+def test_cut_off_cache_fails_on_rebuild_and_stays(sample_epub, tmp_path):
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    cut = "# R\n\n" + " ".join(["w"] * 100) + "\n\n### ⟦AN"
+    pipeline.chapter_file(workdir, 1).write_text(cut)
+
+    def rewrite(md, ch):
+        raise RuntimeError("not cached; rerun without --rebuild to rewrite")
+
+    results = pipeline.optimise(
+        sample_epub, tmp_path / "o.epub", rewrite, workdir, only={1}, rebuild=True
+    )
+    ch1 = next(r for r in results if r.item_id == "ch1")
+    assert ch1.status == "failed" and "cut off" in ch1.detail
+    assert pipeline.chapter_file(workdir, 1).read_text() == cut
+
+
+def test_lost_blocks_evict_the_cached_body(math_epub, tmp_path):
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    body_file = pipeline.chapter_file(workdir, 0, "body")
+    body_file.write_text("# M\n\nbody without the math token")
+    rewrite = lambda md, chapter: "# M\n\n" + " ".join(["word"] * 100)
+    pipeline.optimise(math_epub, tmp_path / "o.epub", rewrite, workdir)
+    assert not body_file.exists()
+
+
+def test_chapter_file_names():
+    assert pipeline.chapter_file("w", 7).name == "007.md"
+    assert pipeline.chapter_file("w", 7, "body").name == "007.body.md"

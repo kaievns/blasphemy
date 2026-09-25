@@ -2,7 +2,11 @@ import re
 
 
 def section(raw: str, name: str) -> str:
-    match = re.search(rf"=== {name} ===\n(.*?)(?=\n=== |\Z)", raw, re.S)
+    match = re.search(
+        rf"^[ \t]*=== *{name} *===[ \t]*\n(.*?)(?=\n[ \t]*===|\Z)",
+        raw.replace("\r\n", "\n"),
+        re.S | re.M | re.I,
+    )
     return match.group(1).strip() if match else ""
 
 

@@ -41,9 +41,12 @@ information.
 ## Resume / caching
 
 Per-book work dir: `.blasphemy/<stem>-<hash8>/`. For each processed chapter:
-`NNN.src.md` (input sent to Claude) and `NNN.md` (Claude output). A chapter
-with an existing output file is not re-sent (`cached`), unless `--force`.
-This makes long runs resumable and prompt iteration inspectable/diffable.
+`NNN.src.md` (input sent to Claude), `NNN.body.md` (the body pass, written
+before the apparatus call) and `NNN.md` (assembled output). A chapter with
+an existing output file is not re-sent (`cached`), unless `--force`. A
+chapter with only `NNN.body.md` reruns the apparatus pass alone, so a
+failed apparatus call never re-bills the body. This makes long runs
+resumable and prompt iteration inspectable/diffable.
 The cache has no key: a cached `NNN.md` is reused after a prompt, model,
 primer or converter change, and `NNN.src.md` is rewritten on every run,
 cache hits included, so it can describe input the cached output never saw.
@@ -53,12 +56,21 @@ cache hits included, so it can describe input the cached output never saw.
 - Claude call retried with backoff; after exhausting retries the chapter is
   marked `failed` and the original content is kept — a failed chapter never
   blocks the book.
+- Body check before caching (`pipeline.body_problem`): the body fails when
+  it ends inside an unclosed ⟦token⟧, ends on a bare heading, or is under
+  35% of the chapter (a refusal). The lowest body ratio across the 98
+  sample rewrites was 0.56. A failed body goes to `NNN.failed.md` and the
+  apparatus pass is never called. HLW ch4 (cut mid-token at a body ratio
+  of 0.64) is the case this exists for: a word ratio cannot see it.
+- Apparatus check: a reply with no KEY POINTS section is retried once with
+  a note, then the chapter fails with its body kept in `NNN.body.md`.
 - Sanity check on the assembled chapter (body plus apparatus): output words
   must be ≥ 0.05× input and ≤ 1.5× input + 250 (`APPARATUS_ALLOWANCE`),
-  else treated as failure. It catches empty output only. A truncated body
-  passes on the 5% floor (HLW ch4 shipped cut mid-token at a body ratio of
-  0.64), and a refused body passes because the apparatus counts. A missing
-  apparatus section is not detected.
+  and no ⟦token⟧ may be left unclosed, else treated as failure. A cached
+  `NNN.md` with an unclosed token counts as a cache miss: a normal run
+  rewrites it, `--rebuild` reports it failed and leaves it in place.
+- A sanity or lost-block failure evicts `NNN.body.md` too, so the rerun
+  starts from a fresh body.
 
 ## Protected blocks
 
@@ -145,8 +157,7 @@ Two Claude calls per chapter, then mechanical assembly:
    chapter's main argument.
 3. **Assembly** (`apparatus.py`): deterministic. Title line first, then the
    body, then `## Key points`, then `## Check yourself` with the answers
-   under a separate **Answers** label. When KEY POINTS is missing the
-   chapter ships as title plus body with no note. The Orient, Watch for and
+   under a separate **Answers** label. The Orient, Watch for and
    pause paths are dead code since 2026-09-15. The body cannot be padded or
    tampered with by the apparatus pass.
 
@@ -249,8 +260,10 @@ and deferred; revisit if back-reference fidelity is lacking in practice.
   restructure removes (37–38 dangling in HLW). `restore_captions` replaces
   any unclassed paragraph that starts with a caption label, deleting its
   prose and anchors (13 duplicate ids, 16 broken Rust links).
-- Chapters are sent whole. HLW ch4 (17,286 words) came back cut mid-token
-  and shipped. An output cap is the suspected cause, not confirmed.
+- Chapters are sent whole. HLW ch4 (17,286 words) came back cut mid-token;
+  an output cap is the suspected cause, not confirmed. The body check now
+  fails such a chapter instead of shipping it, but the chapter still needs
+  a working way to produce its full body.
 - Plain images (only `src`/`alt`, no classed wrapper) travel as markdown and
   nothing enforces them. Styled images and figures are protected tokens.
 - Tables with colspan/rowspan flatten (markdown can't express merges); cell

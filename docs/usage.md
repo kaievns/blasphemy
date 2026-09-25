@@ -98,8 +98,10 @@ kiro-cli 2.19:
 Long runs outlast a quota window. Failed chapters keep their original text and
 the run continues, so the simplest recovery is to re-run the same command once
 quota returns — cached chapters are skipped. Drop `--force` for the recovery
-run: with it every chapter is rewritten and billed again. `--check-providers`
-(or `make check`) is a cheap way to see whether a CLI is usable at all.
+run: with it every chapter is rewritten and billed again. A chapter whose
+apparatus call failed keeps its body in `NNN.body.md` and reruns only the
+apparatus. `--check-providers` (or `make check`) is a cheap way to see
+whether a CLI is usable at all.
 
 ## Tests
 

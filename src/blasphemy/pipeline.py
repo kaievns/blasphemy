@@ -12,6 +12,9 @@ RATIO_MAX = 1.5
 # small reference chapters (tables, templates) keep their body ~verbatim, so
 # without this a chapter under ~450 words could never pass the ceiling
 APPARATUS_ALLOWANCE = 250
+# the lowest body ratio across 98 sample rewrites (2026-09) was 0.56
+BODY_RATIO_MIN = 0.35
+UNCLOSED_TOKEN = re.compile(r"⟦[^⟦⟧]*(?=⟦|\Z)")
 
 
 @dataclass
@@ -28,6 +31,10 @@ class Result:
 def workdir_for(epub_path: Path, root: Path | None = None) -> Path:
     digest = hashlib.sha256(epub_path.read_bytes()).hexdigest()[:8]
     return (root or Path(".blasphemy")) / f"{epub_path.stem}-{digest}"
+
+
+def chapter_file(workdir: str | Path, index: int, kind: str = "") -> Path:
+    return Path(workdir) / f"{index:03d}{'.' + kind if kind else ''}.md"
 
 
 def referenced_anchors(book, chapters: list[epub.Chapter]) -> dict[str, set[str]]:
@@ -63,6 +70,23 @@ def sane(source_md: str, output_md: str) -> bool:
     return words_out <= words_in * RATIO_MAX + APPARATUS_ALLOWANCE
 
 
+def unclosed_token(md: str) -> bool:
+    return bool(UNCLOSED_TOKEN.search(md))
+
+
+def body_problem(source_md: str, body: str) -> str:
+    """Why a body-pass result must not ship, or "" when it looks whole."""
+    lines = [line for line in body.splitlines() if line.strip()]
+    if unclosed_token(body):
+        return "body cut off inside a ⟦token⟧"
+    if lines and lines[-1].lstrip().startswith("#"):
+        return "body ends on a bare heading"
+    ratio = len(body.split()) / max(len(source_md.split()), 1)
+    if ratio < BODY_RATIO_MIN:
+        return f"body is {ratio:.0%} of the chapter"
+    return ""
+
+
 def optimise(
     epub_path: str | Path,
     out_path: str | Path,
@@ -95,8 +119,10 @@ def optimise(
             block_html, refs.get(chapter.href.split("/")[-1], set())
         )
         source_md = convert.html_to_markdown(protected_html)
-        source_file = workdir / f"{chapter.index:03d}.src.md"
-        output_file = workdir / f"{chapter.index:03d}.md"
+        source_file = chapter_file(workdir, chapter.index, "src")
+        output_file = chapter_file(workdir, chapter.index)
+        failed_file = chapter_file(workdir, chapter.index, "failed")
+        body_file = chapter_file(workdir, chapter.index, "body")
 
         if (
             chapter.passthrough
@@ -110,33 +136,44 @@ def optimise(
             )
         else:
             source_file.write_text(source_md)
-            if output_file.exists() and not force:
-                output_md = output_file.read_text()
+            cached = (
+                output_file.read_text() if output_file.exists() and not force else None
+            )
+            stale = ""
+            if cached is not None and unclosed_token(cached):
+                stale, cached = "cached rewrite cut off inside a ⟦token⟧", None
+            if cached is not None:
+                output_md = cached
                 status, detail = "cached", ""
             else:
                 try:
                     output_md = rewrite(source_md, chapter)
+                    problem = ""
                     if not sane(source_md, output_md):
-                        failed_file = workdir / f"{chapter.index:03d}.failed.md"
+                        problem = "output failed sanity check (word ratio)"
+                    elif unclosed_token(output_md):
+                        problem = "output cut off inside a ⟦token⟧"
+                    if problem:
                         failed_file.write_text(output_md)
-                        raise ValueError(
-                            f"output failed sanity check (word ratio), see {failed_file}"
-                        )
+                        body_file.unlink(missing_ok=True)
+                        raise ValueError(f"{problem}, see {failed_file}")
                     output_file.write_text(output_md)
                     status, detail = "rewritten", ""
                     slipped = style.banned(source_md, output_md)
                     if slipped:
                         detail = f"banned words: {', '.join(slipped)}"
                 except Exception as error:
-                    output_md, status, detail = None, "failed", str(error)
+                    output_md, status = None, "failed"
+                    detail = f"{stale}: {error}" if stale else str(error)
             if output_md is not None:
                 html, missing = blocks.restore(
                     convert.markdown_to_html(output_md), protected
                 )
                 if missing:
                     if not rebuild:
-                        (workdir / f"{chapter.index:03d}.failed.md").write_text(output_md)
+                        failed_file.write_text(output_md)
                         output_file.unlink(missing_ok=True)
+                        body_file.unlink(missing_ok=True)
                     output_md, status = None, "failed"
                     detail = f"lost protected blocks: {', '.join(missing)}"
                 else:

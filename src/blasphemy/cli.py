@@ -137,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             return base + primer.chapter_context(book_primer, chapter)
         return base
 
-    def rewrite(chapter_md: str, chapter: epub.Chapter) -> str:
+    def write_body(chapter_md: str, chapter: epub.Chapter) -> str:
         words = len(chapter_md.split())
         contract = (
             f"\n\n[Length contract: the chapter above is {words} words; your "
@@ -155,13 +155,39 @@ def main(argv: list[str] | None = None) -> int:
             body = call_agent(
                 chapter_md + contract + note, with_context(body_prompt, chapter)
             )
+        problem = pipeline.body_problem(chapter_md, body)
+        if problem:
+            failed = pipeline.chapter_file(workdir, chapter.index, "failed")
+            failed.write_text(body)
+            raise ValueError(f"{problem}, see {failed}")
+        return body
+
+    def write_apparatus(body: str, chapter: epub.Chapter) -> str:
         budget = max(220, int(len(body.split()) * 0.10))
-        raw = call_agent(
+        request = (
             f"{body}\n\n[Apparatus word cap: {budget} words total across all "
-            f"sections — a contract.]",
-            with_context(apparatus_prompt, chapter),
+            f"sections — a contract.]"
         )
-        return apparatus.assemble(chapter_md, body, raw)
+        system = with_context(apparatus_prompt, chapter)
+        raw = call_agent(request, system)
+        if not apparatus.section(raw, "KEY POINTS"):
+            raw = call_agent(
+                request + "\n\n[Your previous reply had no === KEY POINTS === "
+                "section. Reply with the delimited apparatus only.]",
+                system,
+            )
+        if not apparatus.section(raw, "KEY POINTS"):
+            raise ValueError("apparatus pass returned no Key points twice; body kept")
+        return raw
+
+    def rewrite(chapter_md: str, chapter: epub.Chapter) -> str:
+        body_file = pipeline.chapter_file(workdir, chapter.index, "body")
+        if body_file.exists() and not args.force:
+            body = body_file.read_text()
+        else:
+            body = write_body(chapter_md, chapter)
+            body_file.write_text(body)
+        return apparatus.assemble(chapter_md, body, write_apparatus(body, chapter))
 
     try:
         results = pipeline.optimise(
