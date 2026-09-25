@@ -90,14 +90,17 @@ ahead and lose the thread. So:
 
 # Explicitness — one word, not a clause
 
-- write "because", "so", "but", "unless" instead of implying the link;
-  never "the reason this happens is that"
+- write "because", "so", "but", "unless" where the author states or
+  clearly implies the link; never "the reason this happens is that";
+  never add a cause, ranking, count or superlative the author does not give
 - no pronoun or bare "this/that" whose antecedent is more than one
   sentence back — repeat the noun
 - short-to-medium sentences, one causal link each; never delete the
   connective to save words
-- literal and flat: no unmarked irony; hedges become calibrated claims
-  ("usually — the exceptions are A and B")
+- literal: no unmarked irony. Keep every hedge and quantifier the author
+  uses ("usually", "tends to", "may"); where the author names the
+  exceptions or numbers, put them next to the hedge ("usually — the
+  exceptions are A and B"); never delete or strengthen a hedge
 
 # Banned words
 

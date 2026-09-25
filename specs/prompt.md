@@ -48,12 +48,18 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-25: `body.md` explicitness rules patched after the review (Kai
+  approved). Connectives only where the author states or clearly implies
+  the link, never an added cause, ranking, count or superlative. "Literal
+  and flat" replaced: keep every hedge and quantifier, put the author's
+  named exceptions next to it, never delete or strengthen one. Not yet
+  validated: planned 6 chapters × 3 draws, scored on hedge retention and
+  the 3 known high-severity errors.
 - 2026-09-25: review of the 4 sample books (`docs/review-2026-09-25.md`).
   Recall holds (0 of 126 load-bearing claims missing). Precision does not:
   hedge words kept 52% against 68% of prose, and the answer and shape
   layers hold 53% of located errors in 17% of the words. `body.md` lines on
-  connectives and "literal and flat" are the suspected cause. No prompt
-  change yet.
+  connectives and "literal and flat" are the suspected cause.
 - 2026-09-16: `body.md` told that a ⟦TITLE-…⟧ token is the chapter title:
   keep it as the first line, alone, no heading of its own.
 - 2026-09-15: Kai approved O ("significantly better than all previous

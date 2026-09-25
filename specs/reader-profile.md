@@ -138,9 +138,10 @@ Since 2026-09-15 production does not apply guidelines 4 (Orient), 9
 (embedded prompts), 19 (prequestions) and 20 (pauses): Orient, Watch for
 and pauses were retired because they restated the body
 (`specs/prompt.md`, 2026-09-13 and 2026-09-15). Guideline 17's recaps live
-only in the end-of-chapter Key points. Guideline 15 is shortened in
-`prompts/body.md` to "literal and flat", and on the samples that reads as
-hedge deletion (`docs/review-2026-09-25.md`). Guidelines 1 and 5 hold for
+only in the end-of-chapter Key points. Guideline 15 was shortened in
+`prompts/body.md` to "literal and flat" until 2026-09-25, and on the
+samples that read as hedge deletion (`docs/review-2026-09-25.md`); the
+prompt now keeps every hedge. Guidelines 1 and 5 hold for
 the depth order but not the headings, which are contextual per chapter.
 
 ## Evidence caveats

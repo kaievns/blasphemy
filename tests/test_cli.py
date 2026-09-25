@@ -143,6 +143,13 @@ def test_body_retried_once_when_banned_word_slips(sample_epub, tmp_path, monkeyp
     assert rewrite.call_count == 5
 
 
+def test_body_prompt_keeps_hedges_and_adds_no_links():
+    body = cli.default_prompt("body")
+    assert "never delete or strengthen a hedge" in body
+    assert "never add a cause, ranking, count or superlative" in body
+    assert "literal and flat" not in body
+
+
 def test_default_prompts_carry_the_ban():
     assert "# Banned words" in cli.default_prompt("body")
     assert "# Banned words" in cli.default_prompt("apparatus")
