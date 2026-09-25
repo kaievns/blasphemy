@@ -11,25 +11,31 @@ software engineer, Asperger-type autistic + ADHD, on stimulant medication.
 - **Reading machinery is fully intact** (eye-tracking, IQ-matched adults:
   Howard 2017): word access, syntax, figurative-language accuracy all normal.
   The cost is paid in **efficiency**: more rereading, slower ambiguity
-  resolution (~d≈1.0 slower on novel metaphor at equal accuracy), weaker
-  *spontaneous* gist/coherence assembly — normal when structure is supplied.
+  resolution (novel metaphor at equal accuracy, d≈1.05 slower: O'Shea,
+  Cersosimo & Engelhardt 2026, n=18 vs 22, auditory task, not Howard 2017),
+  weaker *spontaneous* gist/coherence assembly — normal when structure is
+  supplied.
 - **Task Support Hypothesis** (Bowler): free recall is disorganized but cued
   recall/recognition are intact — retention normalizes when the text itself
   supplies the organizational scheme. The single strongest retention lever
   for this profile.
-- **Strengths to exploit**: systemizing (if-then, rules, taxonomies),
-  verbatim/detail memory (better false-memory resistance than NT), exact
-  wording and numbers are retained and used; expository/technical text is
-  the relative strength genre.
+- **Strengths to exploit**: systemizing (if-then, rules, taxonomies), and
+  exact wording and numbers retained and used (the reader's own account).
+  Expository/technical text is the relative strength genre. The verbal
+  false-memory advantage (Beversdorf 2000) did not replicate (Bowler 2000,
+  Hillier 2007, Murphy 2025), and verbal long-term memory is slightly
+  weaker overall (g=−0.21, Desaunay 2020).
 - **Medication baseline** (adult data thin: one open-label n=15 trial + one
-  retrospective study): assume partially normalized lapse rate and vigilance,
-  **not** working memory (SMD≈0.13), and no effect on the autism-side
-  profile (inference cost, rigidity, sensory load). **Design for the
-  trough** — the text must work for the unmedicated/fatigued state.
-- **AuDHD attention is bimodal** (Dwyer 2024, n=492 incl. 141 AuDHD:
-  combined group highest on hyperfocus; hyperfocus and inattention
-  positively correlated): either locked-in or no-traction, little middle.
-  Engagement-contingency is the defining feature.
+  retrospective study): methylphenidate effects in adults are all small
+  (Pievsky & McGrath 2018: working memory g=0.13, vigilance 0.22,
+  inhibition 0.23), and none reach the autism-side profile (inference
+  cost, rigidity, sensory load). **Design for the trough** — the text must
+  work for the unmedicated/fatigued state.
+- **Hyperfocus and inattention co-occur** (Dwyer 2024, n=492 incl. 141
+  AuDHD: combined group highest on hyperfocus, and the two positively
+  correlated across people). "Locked-in or no traction" is the reader's own
+  account, not a measured distribution. Engagement-contingency is the
+  defining feature.
 - **ADHD's reading failure route is attention (lapses, mind-wandering);
   autism's is inference cost.** Two independent routes; both must be served.
 
@@ -64,9 +70,11 @@ conflict once separated.
 7. Vary examples, angles, concrete detail — make content intrinsically
    interesting; hook the interest system. Novelty at content level only.
 8. Frequent headings double as lapse-recovery anchors.
-9. Embedded prompts/questions measurably rescue ADHD comprehension from
-   mind-wandering (scaffolding study 2024) — retention apparatus serves
-   attention, not just memory.
+9. Metacognitive scaffolding closed the ADHD comprehension gap on a long
+   digital text (Brann & Sidi 2025, online 2024). The scaffold was
+   stage-specific guidance and reader-generated questions, not
+   author-embedded prompts (per a secondary report, as the primary
+   is closed). Retention apparatus can serve attention, not just memory.
 
 ### Language
 
@@ -101,10 +109,12 @@ conflict once separated.
 18. End-of-chapter retrieval questions with answers (testing effect,
     g≈0.5–0.6, strongest lever); 1–2 cumulative questions to earlier
     chapters (spacing).
-19. 2–3 targeted prequestions (g≈0.54–0.66, targeted content only).
+19. 2–3 targeted prequestions (g≈0.66 on prequestioned content, 0.01 on
+    the rest: King-Shepard 2025).
 20. Pause/self-explanation prompts at inferential junctures (g≈0.55).
 21. Key-points recap = answer key, not substitute for retrieval.
-22. Cut seductive details (harm g≈−0.3); keep load-bearing examples
+22. Cut seductive details (direction confirmed by Sundararajan & Adesope
+    2020; the g≈−0.3 value is unverified); keep load-bearing examples
     (instantiation test).
 
 ### Anti-rules (explicitly rejected broad-autism advice)
@@ -113,13 +123,25 @@ conflict once separated.
 - No short-sentence mandates / easy-read formats — choppy prose destroys
   the connectives this reader needs.
 - No pictorial supports: images attract autistic gaze without improving
-  comprehension (Yaneva 2015). Diagrams that ARE the system (state machines,
-  schemas, tables) are content, not decoration.
+  comprehension (Yaneva 2015, weak support: easy-read documents, n=20).
+  Diagrams that ARE the system (state machines, schemas, tables) are
+  content, not decoration.
 - No blanket figurative-language ban (accuracy is intact; efficiency rule 13
   is the correct form).
 - No brevity-by-deleting-specifics (rule 16).
 - No perceptual-difficulty tricks; no reliance on reader-generated
   summaries/rereading.
+
+## Production departures
+
+Since 2026-09-15 production does not apply guidelines 4 (Orient), 9
+(embedded prompts), 19 (prequestions) and 20 (pauses): Orient, Watch for
+and pauses were retired because they restated the body
+(`specs/prompt.md`, 2026-09-13 and 2026-09-15). Guideline 17's recaps live
+only in the end-of-chapter Key points. Guideline 15 is shortened in
+`prompts/body.md` to "literal and flat", and on the samples that reads as
+hedge deletion (`docs/review-2026-09-25.md`). Guidelines 1 and 5 hold for
+the depth order but not the headings, which are contextual per chapter.
 
 ## Evidence caveats
 
@@ -137,4 +159,7 @@ Eraslan/Yaneva 2018/2019 · Yaneva 2015/2019 · Brown 2013 · Dwyer 2024 ·
 Craig (review) · Joshi 2019 · Muit/Kan 2019 · RUPP 2005 · Rodrigues 2021 ·
 Raymaker 2020 · Dunlosky 2013 · Rowland 2014 · Adesope 2017 · Yang 2021 ·
 Schneider 2018 · Sundararajan & Adesope 2020 · Bisra 2018 · Cepeda 2006 ·
-Alderson 2013 · Pievsky & McGrath 2018 · Parks 2022 · Brann & Sidi 2025.
+Alderson 2013 · Pievsky & McGrath 2018 · Parks 2022 · Brann & Sidi 2025 ·
+Desaunay 2020 · King-Shepard 2025 · O'Shea, Cersosimo & Engelhardt 2026.
+Claims re-checked 2026-09-25: 51 of 54 cited sources confirmed, the rest
+corrected above.

@@ -16,20 +16,27 @@ information.
   auth); `kiro` is opt-in via `--provider kiro`. A provider without a system-prompt flag
   gets the system prompt folded into stdin. Binary lookup falls back past
   `PATH` to the usual install dirs because cron/make/nohup shells lose it.
-- **Default model:** `fable` (Claude Fable 5; default since 2026-08-25 —
-  it honors length/budget contracts Opus ignored and reads denser at equal
-  quality). Configurable via `--model`.
+- **Default model:** `fable` on the claude provider, `claude-fable-5.1` at
+  `high` effort on kiro. Default since 2026-08-25. It came closer to the
+  length and budget contracts than Opus and reads denser at equal quality.
+  On the current samples 69 of 98 bodies still exceed the 70% ceiling
+  (`docs/review-2026-09-25.md`). Configurable via `--model`.
 - **Book types:** non-fiction + technical. Rewriting can be aggressive.
 
 ## Flow
 
 1. Load epub, walk spine items that are documents, in spine order.
-2. Skip non-content documents by heuristic: fewer than `--min-words`
-   (default 200) words → passed through unchanged (covers, TOC, copyright).
-3. Convert chapter HTML → markdown, send to Claude with the rewrite prompt,
-   receive rewritten markdown.
+2. Pass through unchanged: nav documents, reference documents (below),
+   `--skip`/`--only` exclusions, and documents under `--min-words` (default
+   200) words (covers, title pages, short part dividers). Front matter over
+   the threshold (copyright pages, forewords, prefaces, acknowledgments) is
+   rewritten and gets apparatus.
+3. Convert chapter HTML → markdown with fragile markup tokenised, run the
+   body pass and the apparatus pass (see Rewrite architecture), assemble.
 4. Convert rewritten markdown → HTML, replace the chapter content in the book.
-5. Write the reassembled epub. Metadata, CSS, images, spine untouched.
+5. Write the reassembled epub. CSS, spine and non-cover images untouched.
+   The title and cover change (see Output identity & styling). The original
+   ISBN stays as the unique identifier.
 
 ## Resume / caching
 
@@ -37,14 +44,21 @@ Per-book work dir: `.blasphemy/<stem>-<hash8>/`. For each processed chapter:
 `NNN.src.md` (input sent to Claude) and `NNN.md` (Claude output). A chapter
 with an existing output file is not re-sent (`cached`), unless `--force`.
 This makes long runs resumable and prompt iteration inspectable/diffable.
+The cache has no key: a cached `NNN.md` is reused after a prompt, model,
+primer or converter change, and `NNN.src.md` is rewritten on every run,
+cache hits included, so it can describe input the cached output never saw.
 
 ## Failure handling
 
 - Claude call retried with backoff; after exhausting retries the chapter is
   marked `failed` and the original content is kept — a failed chapter never
   blocks the book.
-- Sanity check on output: word ratio vs input must be within [0.05, 1.5],
-  else treated as failure (guards against refusals/truncation).
+- Sanity check on the assembled chapter (body plus apparatus): output words
+  must be ≥ 0.05× input and ≤ 1.5× input + 250 (`APPARATUS_ALLOWANCE`),
+  else treated as failure. It catches empty output only. A truncated body
+  passes on the 5% floor (HLW ch4 shipped cut mid-token at a body ratio of
+  0.64), and a refused body passes because the apparatus counts. A missing
+  apparatus section is not detected.
 
 ## Protected blocks
 
@@ -79,7 +93,8 @@ cache that also kept the caption as prose would otherwise get it twice.
 `<var>` passes through as inline HTML with its text escaped, like `<sup>`.
 Placeholders are written `<profile-name>`; unescaped they came back as a fake
 tag and the reader swallowed them, so `[profile.<profile-name>.package.]`
-read as `[profile..package.]`.
+read as `[profile..package.]`. This covers `<var>` input only: a bare
+`<uid>` the model writes in prose is still swallowed on the way back.
 
 ### Callouts are content, not markup
 
@@ -105,32 +120,35 @@ styled title would take a note's "Note" heading as the title.
 
 Indexes, glossaries, bibliographies and contents pages pass through
 untouched (`Chapter.is_reference`, detected by title, `epub:type`, or a
-wrapper `div.index|toc`). They are lookup structures, not arguments: a
+wrapper `div.index|toc`). The title must match whole, so a prefixed title
+such as "Appendix A. Notes" is rewritten. They are lookup structures, not arguments: a
 rewrite destroys them (Statistics' index came back as 23 code blocks with an
 "Orient" paragraph) and costs a chapter's worth of credits doing it.
 Structural ratios are deliberately not used — Rust's Introduction has more
 list items than paragraphs and must still be rewritten.
 
-## Rewrite architecture (locked 2026-08-25, after A–K sample iterations)
+## Rewrite architecture (two-pass locked 2026-08-25, hologram body since 2026-09-15)
 
 Two Claude calls per chapter, then mechanical assembly:
 
-1. **Body pass** (`prompts/body.md`): compression-primary re-expression at
-   55–70% with a comprehension override, in the expert register (field
-   shorthand, author texture as word choice, uniform density, sparing
-   deliberate emphasis). Framing matters more than numbers: a
-   comprehension-first framing ignores numeric targets entirely (H/I
-   experiments); compression-primary with override hits ~73–81% bodies.
+1. **Body pass** (`prompts/body.md`): the hologram restructure (the answer
+   under the title, the shape of the problem as narrative, depth sections
+   with contextual headings, optional asides) in the expert register.
+   A 55–70% length contract with a comprehension override is appended to
+   the user message (`cli.py`) and never measured. Framing matters more than
+   numbers: a comprehension-first framing ignores numeric targets entirely
+   (H/I experiments).
 2. **Apparatus pass** (`prompts/apparatus.md`): produces ONLY delimited
-   apparatus sections (Orient / Watch for / Pauses / Key points /
-   Check yourself / Answers) under a hard word budget, adaptive to how much
-   genuine argument the chapter has; every item must serve the chapter's
-   main argument.
-3. **Assembly** (`apparatus.py`): deterministic — title preserved, front
-   matter pinned above the body, pauses inserted by verbatim locator with
-   position guards (a skipped pause beats a misplaced one), questions
-   separated from answers. The body cannot be padded or tampered with by
-   the apparatus pass.
+   apparatus sections (Key points / Check yourself / Answers) under a word
+   cap of max(220, 10% of body words) stated in the prompt, adaptive to how
+   much genuine argument the chapter has; every item must serve the
+   chapter's main argument.
+3. **Assembly** (`apparatus.py`): deterministic. Title line first, then the
+   body, then `## Key points`, then `## Check yourself` with the answers
+   under a separate **Answers** label. When KEY POINTS is missing the
+   chapter ships as title plus body with no note. The Orient, Watch for and
+   pause paths are dead code since 2026-09-15. The body cannot be padded or
+   tampered with by the apparatus pass.
 
 ## Image wrappers
 
@@ -180,7 +198,9 @@ twice over: the centred number/title spans were lost, and `figure.opener`
 plain `<h1>text</h1>` is left to markdown, which reproduces it exactly.
 The prompt tells the model the token *is* the title and to add no heading of
 its own; `apparatus.assemble` recognises the token as the title line so the
-Orient block lands under it.
+title stays first. It checks the first line only: an SRE body opens with an
+⟦ANCHOR⟧ line, so the source title is prepended and the body's own heading
+stays, giving two `<h1>` in 43 of 45 SRE documents.
 
 The lead paragraph is rewritten, so its class cannot travel as a token.
 Instead the original lead's class (`p.ChapterIntro`: 1.3em, no indent) is
@@ -198,8 +218,9 @@ valid siblings.
    are restored as `<a id>` elements. A dropped token falls back to an anchor
    at chapter top (link lands at chapter start, never breaks) and is reported
    as a warning in the result detail.
-2. **Style contract** — the rewrite prompt fixes one chapter skeleton
-   (Orient → prequestions → sections → Key points → Check yourself); see
+2. **Style contract** — the body prompt fixes one depth order for every
+   chapter (answer → shape → depths → optional asides). The apparatus
+   appends Key points → Check yourself → Answers. See
    `specs/reader-profile.md` for the evidence base.
 3. **Book primer** — one Claude call per book (prompt: `prompts/primer.md`,
    input: chapter titles + openings) produces arc + per-chapter scope +
@@ -223,12 +244,19 @@ and deferred; revisit if back-reference fidelity is lacking in practice.
 
 ## Known limitations (v1)
 
-- Original intra-book anchors/cross-references may break (rewritten HTML has
-  new structure). TOC at spine level survives.
-- Very long chapters are sent whole; no chunking yet. Claude's context makes
-  this fine for normal books.
-- Images: `![...]` carries through both conversions; the prompt orders Claude
-  to keep them but nothing enforces it yet (extend protected blocks if a real
-  book loses images).
+- A referenced anchor the model drops falls back to the top of its chapter.
+  Cross-references by section number point at numbered headings the
+  restructure removes (37–38 dangling in HLW). `restore_captions` replaces
+  any unclassed paragraph that starts with a caption label, deleting its
+  prose and anchors (13 duplicate ids, 16 broken Rust links).
+- Chapters are sent whole. HLW ch4 (17,286 words) came back cut mid-token
+  and shipped. An output cap is the suspected cause, not confirmed.
+- Plain images (only `src`/`alt`, no classed wrapper) travel as markdown and
+  nothing enforces them. Styled images and figures are protected tokens.
 - Tables with colspan/rowspan flatten (markdown can't express merges); cell
   data survives.
+- The HTML↔markdown round trip breaks four constructs: code containing a
+  line-initial triple-backtick fence (the fence closes early and code and
+  prose swap), code nested in list items, definition lists (no `def_list`
+  on the way back), and bare `<placeholder>` text. See
+  `docs/review-2026-09-25.md`.

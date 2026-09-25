@@ -97,8 +97,9 @@ kiro-cli 2.19:
 
 Long runs outlast a quota window. Failed chapters keep their original text and
 the run continues, so the simplest recovery is to re-run the same command once
-quota returns — cached chapters are skipped. `--check-providers` (or
-`make check`) is a cheap way to see whether a CLI is usable at all.
+quota returns — cached chapters are skipped. Drop `--force` for the recovery
+run: with it every chapter is rewritten and billed again. `--check-providers`
+(or `make check`) is a cheap way to see whether a CLI is usable at all.
 
 ## Tests
 
@@ -110,4 +111,6 @@ make test           # or: .venv/bin/pytest -q
 
 Edit `src/blasphemy/prompts/body.md` (or pass `--prompt`), then re-run with
 `--force`. Inspect `.blasphemy/<book>/NNN.src.md` vs `NNN.md` to judge rewrites
-without opening the epub. Log changes in `specs/prompt.md`.
+without opening the epub. `NNN.src.md` is rewritten on every run, so after a
+converter change it no longer shows what a cached `NNN.md` was made from. Log
+changes in `specs/prompt.md`.

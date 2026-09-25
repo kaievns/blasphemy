@@ -9,7 +9,6 @@
 - Goal: **compress without losing meaning or useful information.**
 
 ## Locked rules
-
 - **Original terminology is preserved verbatim.** Never replaced with
   simplified versions for readability — simplify around terms, never
   the terms. (Locked 2026-08-23.)
@@ -18,10 +17,10 @@
   and a `banned words:` note in the chapter result. (Locked 2026-09-15.)
 
 ## Prompt design principles
-
-- The rewrite prompt is the `claude -p` system prompt; the chapter markdown
-  is the user message. Output must be markdown only, no preamble/commentary
-  (anything else corrupts the epub).
+- The rewrite prompt plus the book primer is the system prompt
+  (`--system-prompt` on claude, folded into stdin on kiro). The chapter
+  markdown plus the length contract is the user message. Output must be
+  markdown only, no preamble/commentary (anything else corrupts the epub).
 - Cut: repetition, filler anecdotes, marketing prose, rhetorical padding,
   restated points.
 - Keep: every fact, number, name, argument step, code block, and any example
@@ -31,7 +30,10 @@
   problem as narrative, then depth sections with contextual headings, then
   asides. Every layer continues the one above and adds; nothing is said
   twice. The author's section order and boundaries do not survive; terms,
-  claims, specifics, code and figures do.
+  claims, specifics, code and figures do. Measured output differs on two
+  points: the depths keep the author's order (Kendall tau median 0.995),
+  and the 8 audited chapters hold 52 restatements
+  (`docs/review-2026-09-25.md`).
 
 ## Prompt files
 
@@ -41,6 +43,19 @@ prompt with `--prompt <path>` for experiments.
 
 ## Iteration log
 
+Record notable prompt changes here with date + what/why. Newest first.
+Entries on the same day are not in time order. Sample and prompt files
+named below lived in `experiments/`, which is gitignored, so they are not in
+the repo.
+
+- 2026-09-25: review of the 4 sample books (`docs/review-2026-09-25.md`).
+  Recall holds (0 of 126 load-bearing claims missing). Precision does not:
+  hedge words kept 52% against 68% of prose, and the answer and shape
+  layers hold 53% of located errors in 17% of the words. `body.md` lines on
+  connectives and "literal and flat" are the suspected cause. No prompt
+  change yet.
+- 2026-09-16: `body.md` told that a ⟦TITLE-…⟧ token is the chapter title:
+  keep it as the first line, alone, no heading of its own.
 - 2026-09-15: Kai approved O ("significantly better than all previous
   versions"). Promoted to production: `body.md` = O prompt, `apparatus.md`
   = Key points + Check yourself only (Orient/Watch for/Pauses retired).
@@ -78,8 +93,8 @@ prompt with `--prompt <path>` for experiments.
   words; bottom lines 156-185 words; all tokens/anchors/fences intact.
   Kai on length: not obsessed, comprehension, absorption speed and
   friction first — the numeric contract stays only as the compression
-  driver. Samples `experiments/ch1-*-option-{m,n}.md`. Awaiting Kai's
-  read of J vs L vs N.
+  driver. Samples `experiments/ch1-*-option-{m,n}.md`. Superseded by O
+  (2026-09-15).
 - 2026-09-13: option L — pyramid/BLUF chapter structure (Kai's proposal:
   Orient and Pause felt repetitive, arriving two sentences before the body
   said the same thing). Body pass emits fixed layers: Bottom line (claims
@@ -94,38 +109,21 @@ prompt with `--prompt <path>` for experiments.
   never paraphrase" and verbatim-wording Key points. Fable ch1 samples:
   stats 75%, linux 67%, rust 65% (`experiments/ch1-*-option-l.md`,
   prompts `prompt-body-l.md`/`prompt-apparatus-l.md`). Not in production;
-  awaiting Kai's read against J.
-Record notable prompt changes here with date + what/why.
-
-- 2026-08-23: initial version.
-- 2026-08-23: added protected-block token rule (⟦MATH-n⟧/⟦SVG-n⟧) — keep
-  verbatim, gist after the colon supplies context for compression.
-- 2026-08-23: terminology-preservation rule locked.
-- 2026-08-23: full rewrite from deep research (see `reader-profile.md`):
-  language rules (referent resolution, explicit connectives, no unmarked
-  irony, flat positions), fixed chapter skeleton, retention apparatus
-  (prequestions, pause prompts, key points, retrieval questions), anchor
-  tokens, book-primer context. First test run: Statistics Done Wrong.
-- 2026-08-23: first test run showed growth instead of compression (preface
-  +22%, ch1 +7% vs old prompt's -34%/-44%): explicitness + keep-rules +
-  apparatus swamped the cut rules. Added hard compression budget (output =
-  40-65% of input, apparatus paid from the budget), credits carve-out for
-  acknowledgment/blurb name-lists, light apparatus for front matter.
-- 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
-  contract, shrink pass recovered only 4-9%. Split into two passes:
-  compress.md (single objective) + enhance.md (apparatus, growth-capped).
+  superseded by O (2026-09-15).
 - 2026-08-25: full library regenerated with production pipeline (J body +
   apparatus + assembly): Stats 90%, HLW 85%, SRE 88%, Rust 77%; total 453k
   -> 386k (85%). 0 content failures (2 SRE reference appendices correctly
-  kept originals via sanity guard). Production-vs-experiment gap traced to
-  generation variance (prompt byte-identical, looser draws). Known items:
-  tiny chapters can grow (apparatus minimum) -> skip apparatus below ~1,200
-  words; 4 chapters fell back to fenced code (count mismatch); 2 anchor
+  kept originals via sanity guard). Production-vs-experiment gap attributed
+  to generation variance (prompt byte-identical, looser draws), never
+  measured. Known items: tiny chapters can grow (apparatus minimum) -> skip
+  apparatus below ~1,200 words (proposed, not implemented); 4 chapters fell back to fenced code (count mismatch); 2 anchor
   top-fallbacks.
 - 2026-08-25: Kai read K vs J: J reads better — K's density rule reverted;
   J locked as production body prompt. Full-library regeneration with the
-  production pipeline; front matter (prefaces/forewords/acknowledgments)
-  now skipped per Kai ("I never read those").
+  production pipeline. Kai asked for front matter
+  (prefaces/forewords/acknowledgments) to be skipped ("I never read
+  those"). No skip rule exists in code, only `--skip`, and the current
+  samples rewrite 22 non-chapter documents.
 - 2026-08-25: Kai approved J (linear, comprehensible, apparatus on point);
   asked for more even density/cadence — no mid-flight filler triage. K =
   J + uniform-density rule (every sentence carries load, one-clause
@@ -140,7 +138,8 @@ Record notable prompt changes here with date + what/why.
   comprehension override (J) restores 73-74% on stats/linux (rust stayed
   81%). Apparatus discipline fixed by adaptive value/time bar (~275-500w).
   Formatting preservation (pre-markup restoration, sup/sub/u passthrough)
-  landed in pipeline with tests. H-vs-J judge panel pending (session limit).
+  landed in pipeline with tests. H-vs-J judge panel superseded by Kai's J
+  approval.
 - 2026-08-25: D/E/F/G iteration cycle on ch1 samples (3 books), each
   judged by 6-agent workflow against Kai's five feedback points + 15-fact
   preservation sweep. D: register/grounding fixed, length failed (87-96%).
@@ -166,3 +165,20 @@ Record notable prompt changes here with date + what/why.
   destroys connectives), added keep-specifics rule (edge cases, exceptions,
   exact values), systemizing structure (cases/invariants/if-then tables),
   marked-recap rule, plausibility flagging, skippability in Orient.
+- 2026-08-23: 12-chapter/4-book sample experiment: single-pass avg 83% vs
+  contract, shrink pass recovered only 4-9%. Split into two passes:
+  compress.md (single objective) + enhance.md (apparatus, growth-capped).
+- 2026-08-23: first test run showed growth instead of compression (preface
+  +22%, ch1 +7% vs old prompt's -34%/-44%): explicitness + keep-rules +
+  apparatus swamped the cut rules. Added hard compression budget (output =
+  40-65% of input, apparatus paid from the budget), credits carve-out for
+  acknowledgment/blurb name-lists, light apparatus for front matter.
+- 2026-08-23: full rewrite from deep research (see `reader-profile.md`):
+  language rules (referent resolution, explicit connectives, no unmarked
+  irony, flat positions), fixed chapter skeleton, retention apparatus
+  (prequestions, pause prompts, key points, retrieval questions), anchor
+  tokens, book-primer context. First test run: Statistics Done Wrong.
+- 2026-08-23: terminology-preservation rule locked.
+- 2026-08-23: added protected-block token rule (⟦MATH-n⟧/⟦SVG-n⟧) — keep
+  verbatim, gist after the colon supplies context for compression.
+- 2026-08-23: initial version.
