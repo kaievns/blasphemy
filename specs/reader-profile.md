@@ -16,9 +16,11 @@ software engineer, Asperger-type autistic + ADHD, on stimulant medication.
   weaker *spontaneous* gist/coherence assembly — normal when structure is
   supplied.
 - **Task Support Hypothesis** (Bowler): free recall is disorganized but cued
-  recall/recognition are intact — retention normalizes when the text itself
-  supplies the organizational scheme. The single strongest retention lever
-  for this profile.
+  recall/recognition are intact (Desaunay 2020: free recall g=−0.38, cued
+  g=−0.08, ns). The hypothesis is about support at retrieval, cued questions
+  at test; that the text's own organization supplies it is inference. The
+  single strongest retention lever for this profile, and in blasphemy it
+  lives in the apparatus (`docs/retention-2026-09-26.md`).
 - **Strengths to exploit**: systemizing (if-then, rules, taxonomies), and
   exact wording and numbers retained and used (the reader's own account).
   Expository/technical text is the relative strength genre. The verbal
@@ -66,7 +68,9 @@ conflict once separated.
 ### Content units (ADHD layer)
 
 6. Short completable sections (~5–10 min), never ending mid-argument;
-   front-load each section's point (lapses accumulate toward ends).
+   front-load each section's point. (The rationale that lapses accumulate
+   toward section ends is unsupported: adult ADHD shows a lower overall
+   level, not a steeper decline, Tucha 2008.)
 7. Vary examples, angles, concrete detail — make content intrinsically
    interesting; hook the interest system. Novelty at content level only.
 8. Frequent headings double as lapse-recovery anchors.
@@ -79,8 +83,9 @@ conflict once separated.
 ### Language
 
 10. Precise technical vocabulary is an asset — never simplify it. One
-    concept = one term forever (verbatim memory makes synonym rotation read
-    as a new referent).
+    concept = one term forever. This rests on fidelity and the reader's
+    stated preference; the premise that a synonym reads as a new referent
+    has no autism-specific evidence.
 11. Kill referential/lexical ambiguity: resolve pronouns across sentence
     boundaries, expand acronyms at first use, no load-bearing homographs.
 12. Short-to-medium sentences, one causal link each — but **never delete the
@@ -90,9 +95,9 @@ conflict once separated.
     fine when the literal claim is also stated.
 14. Flag wrongness explicitly ("Note: common misconfiguration") — subtle
     implausibility is detected slowly.
-15. Convert hedges to explicit uncertainty structure ("usually (~90% of
-    deployments)"); state positions flatly; never encode requirements in
-    social subtext.
+15. Keep the author's hedges and make them explicit where the author gives
+    the exceptions or numbers ("usually — the exceptions are A and B");
+    never invent a number; never encode requirements in social subtext.
 
 ### Completeness & redundancy
 
@@ -107,8 +112,10 @@ conflict once separated.
 ### Retention apparatus (learning science, unchanged from v1)
 
 18. End-of-chapter retrieval questions with answers (testing effect,
-    g≈0.5–0.6, strongest lever); 1–2 cumulative questions to earlier
-    chapters (spacing).
+    g≈0.5–0.6, strongest lever). The benefit needs an attempt before the
+    answer is visible. 1–2 cumulative questions to earlier chapters give
+    spacing only if answering them needs the earlier chapter; as built they
+    do not (a median 89% of each answer is in the current chapter).
 19. 2–3 targeted prequestions (g≈0.66 on prequestioned content, 0.01 on
     the rest: King-Shepard 2025).
 20. Pause/self-explanation prompts at inferential junctures (g≈0.55).
