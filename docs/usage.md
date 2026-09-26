@@ -57,6 +57,17 @@ PATH. Override explicitly with `BLASPHEMY_CLAUDE_BIN` / `BLASPHEMY_KIRO_BIN`.
 tools disabled. Models: `fable` (default), `opus`, `sonnet`, `haiku`.
 Never pass `--bare`: it forces API-key auth and bypasses the subscription.
 
+Output is read from `--output-format stream-json --verbose`, not `text`.
+When a reply hits Claude Code's output-token limit, the CLI injects "Output
+token limit hit. Resume directly…" and the model continues in a second
+message; the text/json `result` holds only that last message. Long chapters
+hit this often: 7 of 10 HLW ch9 bodies (17,942 words) came back as a tail
+fragment in text mode (2026-09-26, `CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000`
+did not prevent it). `providers.claude_reply` joins the text of every
+assistant message; the continuation often repeats the last partial line, so
+the longest line-aligned tail it repeats is dropped at the seam. An error
+result counts as empty output and is retried.
+
 ### kiro
 
 `kiro-cli chat --no-interactive` (the bare `kiro` command opens the IDE).

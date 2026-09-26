@@ -260,3 +260,59 @@ def test_rewrite_missing_binary_is_clear():
     with patch("subprocess.run", side_effect=FileNotFoundError):
         with pytest.raises(providers.ProviderError, match="not found on PATH"):
             providers.rewrite("chapter", "SYSTEM")
+
+
+def stream(*messages, error=False):
+    events = [{"type": "system", "subtype": "init"}]
+    for n, text in enumerate(messages):
+        events.append({"type": "assistant", "message": {"id": f"m{n}", "content": [{"type": "thinking", "thinking": "..."}]}})
+        events.append({"type": "assistant", "message": {"id": f"m{n}", "content": [{"type": "text", "text": text}]}})
+        if n + 1 < len(messages):
+            events.append({"type": "user", "message": {"content": [{"type": "text", "text": "Output token limit hit. Resume directly"}]}})
+    events.append({"type": "result", "subtype": "success", "is_error": error, "result": messages[-1] if messages else ""})
+    return "\n".join(json.dumps(e) for e in events)
+
+
+def test_claude_call_streams_json():
+    cmd, _ = providers.build_call(providers.CLAUDE, "CHAPTER", "SYSTEM")
+    assert cmd[cmd.index("--output-format") + 1] == "stream-json"
+    assert "--verbose" in cmd
+
+
+def test_claude_reply_keeps_every_continued_message():
+    first = "# Title\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n| "
+    second = "| 3 | 4 |\n\nThe end."
+    assert providers.claude_reply(stream(first, second)) == (
+        "# Title\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n\nThe end."
+    )
+
+
+def test_join_continuation_drops_a_restarted_code_line():
+    first = "Bind it with\n\n```\n# ip address add <var>address/subnet</var>"
+    second = "```\n# ip address add <var>address/subnet</var> dev <var>interface</var>\n```"
+    assert providers.join_continuation(first, second) == (
+        "Bind it with\n\n```\n# ip address add <var>address/subnet</var> dev <var>interface</var>\n```"
+    )
+
+
+def test_join_continuation_plain_when_nothing_repeats():
+    assert providers.join_continuation("ends mid", "-word goes on") == "ends mid-word goes on"
+    assert providers.join_continuation("para one.\n\n", "para two.") == "para one.\n\npara two."
+
+
+def test_claude_reply_single_message_ignores_thinking():
+    assert providers.claude_reply(stream("# T\n\nbody")) == "# T\n\nbody"
+
+
+def test_claude_reply_error_result_is_empty():
+    assert providers.claude_reply(stream("partial", error=True)) == ""
+
+
+def test_claude_reply_passes_plain_text_through():
+    assert providers.claude_reply("plain reply\n") == "plain reply"
+
+
+def test_rewrite_returns_the_joined_stream_reply():
+    out = stream("# T\n\nfirst half, ", "second half.")
+    with patch("subprocess.run", return_value=completed(stdout=out)):
+        assert providers.rewrite("chapter", "SYSTEM") == "# T\n\nfirst half, second half."

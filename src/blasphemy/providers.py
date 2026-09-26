@@ -15,6 +15,7 @@ FALLBACK_DIRS = ("~/.local/bin", "/usr/local/bin", "/opt/homebrew/bin")
 ANSI = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 KIRO_FOOTER = re.compile(r"^[\s▸>]*Credits:.*?Time:.*$", re.M)
 KIRO_MARKER = re.compile(r"\A> ")  # reply marker; later `> ` are blockquotes
+CONTINUATION_OVERLAP_MAX = 4000
 
 
 def strip_chrome(text: str) -> str:
@@ -26,6 +27,55 @@ def strip_chrome(text: str) -> str:
 
 class ProviderError(Exception):
     pass
+
+
+def join_continuation(first: str, second: str) -> str:
+    """Join a reply split mid-stream; the continuation often restarts the
+    last partial line, so drop the longest line-aligned tail it repeats."""
+    tail = max(len(first) - CONTINUATION_OVERLAP_MAX, 0)
+    starts = [0] if tail == 0 else []
+    starts += [i + 1 for i in range(tail, len(first)) if first[i] == "\n"]
+    for start in starts:
+        if second.startswith(first[start:]):
+            return first[:start] + second
+    return first + second
+
+
+def claude_reply(stdout: str) -> str:
+    """The whole reply from `claude -p --output-format stream-json`.
+
+    Claude Code continues a reply that hits its output-token limit in a new
+    message and its `result` keeps only the last one (docs/usage.md#claude).
+    """
+    texts: dict[str, list[str]] = {}
+    parsed = False
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        parsed = True
+        if event.get("type") == "result" and event.get("is_error"):
+            return ""
+        if event.get("type") != "assistant":
+            continue
+        message = event.get("message") or {}
+        blocks = texts.setdefault(message.get("id") or str(len(texts)), [])
+        blocks += [
+            block.get("text", "")
+            for block in message.get("content") or []
+            if block.get("type") == "text"
+        ]
+    if not parsed:
+        return stdout.strip()
+    reply = ""
+    for blocks in texts.values():
+        text = "".join(blocks)
+        if text:
+            reply = join_continuation(reply, text) if reply else text
+    return reply.strip()
 
 
 @dataclass(frozen=True)
@@ -53,7 +103,8 @@ CLAUDE = Provider(
     base_args=(
         "-p",
         "--output-format",
-        "text",
+        "stream-json",
+        "--verbose",
         "--no-session-persistence",
         "--tools",
         "",
@@ -61,6 +112,7 @@ CLAUDE = Provider(
     model_flag="--model",
     effort_flag="--effort",
     system_flag="--system-prompt",
+    sanitize=claude_reply,
 )
 
 # kiro-cli renders markdown for the terminal even when piped: ``` fences and
