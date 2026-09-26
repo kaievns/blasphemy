@@ -30,9 +30,9 @@ information.
    `--skip`/`--only` exclusions, and documents under `--min-words` (default
    200) words (covers, title pages, short part dividers). Front matter over
    the threshold (copyright pages, forewords, prefaces, acknowledgments) is
-   rewritten and gets apparatus.
+   rewritten.
 3. Convert chapter HTML → markdown with fragile markup tokenised, run the
-   body pass and the apparatus pass (see Rewrite architecture), assemble.
+   body pass (see Rewrite architecture), put the chapter title first.
 4. Convert rewritten markdown → HTML, replace the chapter content in the book.
 5. Write the reassembled epub. CSS, spine and non-cover images untouched.
    The title and cover change (see Output identity & styling). The original
@@ -41,12 +41,18 @@ information.
 ## Resume / caching
 
 Per-book work dir: `.blasphemy/<stem>-<hash8>/`. For each processed chapter:
-`NNN.src.md` (input sent to Claude), `NNN.body.md` (the body pass, written
-before the apparatus call) and `NNN.md` (assembled output). A chapter with
-an existing output file is not re-sent (`cached`), unless `--force`. A
-chapter with only `NNN.body.md` reruns the apparatus pass alone, so a
-failed apparatus call never re-bills the body. This makes long runs
-resumable and prompt iteration inspectable/diffable.
+`NNN.src.md` (input sent to Claude) and `NNN.md` (output). A chapter with
+an existing output file is not re-sent (`cached`), unless `--force`. This
+makes long runs resumable and prompt iteration inspectable/diffable.
+Cached outputs are checked on read, for 0 calls. One from before
+2026-09-26 loses its retired Key points / Check yourself tail (unless the
+source has its own Key points heading) and the doubled title the old
+assembler gave Pandoc books, and is rewritten in place; under `--rebuild`
+the clean-up happens in memory only. A cached output that then fails the
+body check is a cache miss: a normal run rewrites it, `--rebuild` reports
+it failed and leaves it in place. A `--force` run that fails a chapter
+moves the old output to `NNN.stale.md`, so a later run rewrites the chapter
+instead of serving what `--force` meant to replace.
 The cache has no key: a cached `NNN.md` is reused after a prompt, model,
 primer or converter change, and `NNN.src.md` is rewritten on every run,
 cache hits included, so it can describe input the cached output never saw.
@@ -62,19 +68,12 @@ cache hits included, so it can describe input the cached output never saw.
   of the chapter (a refusal). The title rule catches tail fragments, which
   text-mode output produced when a long reply was continued past the
   output-token limit (`docs/usage.md#claude-default`); the provider now
-  joins every message, so the rule is the backstop. The lowest body ratio across the 98
-  sample rewrites was 0.56. A failed body goes to `NNN.failed.md` and the
-  apparatus pass is never called. HLW ch4 (cut mid-token at a body ratio
-  of 0.64) is the case this exists for: a word ratio cannot see it.
-- Apparatus check: a reply with no KEY POINTS section is retried once with
-  a note, then the chapter fails with its body kept in `NNN.body.md`.
-- Sanity check on the assembled chapter (body plus apparatus): output words
-  must be ≥ 0.05× input and ≤ 1.5× input + 250 (`APPARATUS_ALLOWANCE`),
-  and no ⟦token⟧ may be left unclosed, else treated as failure. A cached
-  `NNN.md` with an unclosed token counts as a cache miss: a normal run
-  rewrites it, `--rebuild` reports it failed and leaves it in place.
-- A sanity or lost-block failure evicts `NNN.body.md` too, so the rerun
-  starts from a fresh body.
+  joins every message, so the rule is the backstop. The lowest body ratio
+  across the 98 sample rewrites was 0.56. A failed body goes to
+  `NNN.failed.md`. HLW ch4 (cut mid-token at a body ratio of 0.64) is the
+  case this exists for: a word ratio cannot see it.
+- Sanity check on a fresh output: words must be ≥ 0.05× and ≤ 1.5× input,
+  and no ⟦token⟧ may be left unclosed, else treated as failure.
 
 ## Protected blocks
 
@@ -143,9 +142,9 @@ rewrite destroys them (Statistics' index came back as 23 code blocks with an
 Structural ratios are deliberately not used — Rust's Introduction has more
 list items than paragraphs and must still be rewritten.
 
-## Rewrite architecture (two-pass locked 2026-08-25, hologram body since 2026-09-15)
+## Rewrite architecture (hologram body since 2026-09-15, one pass since 2026-09-26)
 
-Two Claude calls per chapter, then mechanical assembly:
+One Claude call per chapter (a second only when a banned word slips):
 
 1. **Body pass** (`prompts/body.md`): the hologram restructure (the answer
    under the title, the shape of the problem as narrative, depth sections
@@ -154,16 +153,14 @@ Two Claude calls per chapter, then mechanical assembly:
    the user message (`cli.py`) and never measured. Framing matters more than
    numbers: a comprehension-first framing ignores numeric targets entirely
    (H/I experiments).
-2. **Apparatus pass** (`prompts/apparatus.md`): produces ONLY delimited
-   apparatus sections (Key points / Check yourself / Answers) under a word
-   cap of max(220, 10% of body words) stated in the prompt, adaptive to how
-   much genuine argument the chapter has; every item must serve the
-   chapter's main argument.
-3. **Assembly** (`apparatus.py`): deterministic. Title line first, then the
-   body, then `## Key points`, then `## Check yourself` with the answers
-   under a separate **Answers** label. The Orient, Watch for and
-   pause paths are dead code since 2026-09-15. The body cannot be padded or
-   tampered with by the apparatus pass.
+The body ships as written. The body check requires it to open with the
+chapter title (after leading ⟦ANCHOR⟧ tokens) whenever the source does.
+
+The end-of-chapter apparatus (Key points, Check yourself, Answers) was
+removed on 2026-09-26: Kai never read it, it cost one call per chapter, it
+repeated the top layers' overstatements in 5 of 8 audited chapters
+(`docs/review-2026-09-25.md`), and it could not work as built
+(`docs/retention-2026-09-26.md`).
 
 ## Image wrappers
 
@@ -212,10 +209,11 @@ twice over: the centred number/title spans were lost, and `figure.opener`
 3.25em bottom margin, so without it the art sat on top of the heading. A
 plain `<h1>text</h1>` is left to markdown, which reproduces it exactly.
 The prompt tells the model the token *is* the title and to add no heading of
-its own; `apparatus.assemble` recognises the token as the title line so the
-title stays first. It checks the first line only: an SRE body opens with an
-⟦ANCHOR⟧ line, so the source title is prepended and the body's own heading
-stays, giving two `<h1>` in 43 of 45 SRE documents.
+its own; the body check recognises the token as the title line. It looks
+past leading ⟦ANCHOR⟧ tokens, because a Pandoc body (SRE) opens with the
+chapter's anchor. The retired assembler checked only the first line and
+prepended the source title, which gave two `<h1>` in 43 of 45 SRE
+documents; cached outputs are repaired on read.
 
 The lead paragraph is rewritten, so its class cannot travel as a token.
 Instead the original lead's class (`p.ChapterIntro`: 1.3em, no indent) is
@@ -234,8 +232,7 @@ valid siblings.
    at chapter top (link lands at chapter start, never breaks) and is reported
    as a warning in the result detail.
 2. **Style contract** — the body prompt fixes one depth order for every
-   chapter (answer → shape → depths → optional asides). The apparatus
-   appends Key points → Check yourself → Answers. See
+   chapter (answer → shape → depths → optional asides). See
    `specs/reader-profile.md` for the evidence base.
 3. **Book primer** — one Claude call per book (prompt: `prompts/primer.md`,
    input: chapter titles + openings) produces arc + per-chapter scope +

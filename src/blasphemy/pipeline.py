@@ -4,18 +4,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import apparatus, blocks, convert, cover, epub, style
+from . import blocks, convert, cover, epub, style
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
-# flat headroom for the apparatus pass, whose budget has a ~220-word floor:
-# small reference chapters (tables, templates) keep their body ~verbatim, so
-# without this a chapter under ~450 words could never pass the ceiling
-APPARATUS_ALLOWANCE = 250
 # the lowest body ratio across 98 sample rewrites (2026-09) was 0.56
 BODY_RATIO_MIN = 0.35
 UNCLOSED_TOKEN = re.compile(r"⟦[^⟦⟧]*(?=⟦|\Z)")
-ANCHORS_ONLY = re.compile(r"(?:⟦ANCHOR:[^⟧]*⟧\s*)+")
+TITLE_TOKEN = re.compile(r"⟦TITLE-\d+[^⟧]*⟧\s*$")
+LEADING_ANCHORS = re.compile(r"^(?:⟦ANCHOR:[^⟧]*⟧\s*)+")
+RETIRED_APPARATUS = re.compile(r"\n## Key points\n(?:(?!\n#{1,2} ).)*?(?:\n## Check yourself\n.*)?\Z", re.S)
+KEY_POINTS_HEADING = re.compile(r"^#+\s*key points\s*$", re.I | re.M)
 
 
 @dataclass
@@ -68,27 +67,41 @@ def sane(source_md: str, output_md: str) -> bool:
     words_out = len(output_md.split())
     if words_out < words_in * RATIO_MIN:
         return False
-    return words_out <= words_in * RATIO_MAX + APPARATUS_ALLOWANCE
+    return words_out <= words_in * RATIO_MAX
 
 
 def unclosed_token(md: str) -> bool:
     return bool(UNCLOSED_TOKEN.search(md))
 
 
+def is_title(line: str) -> bool:
+    # a `# ` heading, or the token a protected chapter title travels as
+    return line.startswith("# ") or bool(TITLE_TOKEN.match(line))
+
+
 def opening_line(md: str) -> str:
     for line in md.splitlines():
-        stripped = line.strip()
-        if stripped and not ANCHORS_ONLY.fullmatch(stripped):
-            return stripped
+        rest = LEADING_ANCHORS.sub("", line.strip())
+        if rest:
+            return rest
     return ""
+
+
+def upgrade_cached(source_md: str, md: str) -> str:
+    """A cached output without what the retired assembler added (2026-09-26):
+    the apparatus tail and, on Pandoc books, a doubled title."""
+    if not KEY_POINTS_HEADING.search(source_md):
+        md = RETIRED_APPARATUS.sub("", md)
+    lines = md.strip().split("\n")
+    if lines and is_title(lines[0]) and opening_line("\n".join(lines[1:])) == lines[0].strip():
+        lines = lines[1:]
+    return "\n".join(lines).strip()
 
 
 def body_problem(source_md: str, body: str) -> str:
     """Why a body-pass result must not ship, or "" when it looks whole."""
     lines = [line for line in body.splitlines() if line.strip()]
-    if apparatus.is_title(opening_line(source_md)) and not apparatus.is_title(
-        opening_line(body)
-    ):
+    if is_title(opening_line(source_md)) and not is_title(opening_line(body)):
         return "body does not open with the chapter title"
     if unclosed_token(body):
         return "body cut off inside a ⟦token⟧"
@@ -135,7 +148,6 @@ def optimise(
         source_file = chapter_file(workdir, chapter.index, "src")
         output_file = chapter_file(workdir, chapter.index)
         failed_file = chapter_file(workdir, chapter.index, "failed")
-        body_file = chapter_file(workdir, chapter.index, "body")
 
         if (
             chapter.passthrough
@@ -153,8 +165,15 @@ def optimise(
                 output_file.read_text() if output_file.exists() and not force else None
             )
             stale = ""
-            if cached is not None and unclosed_token(cached):
-                stale, cached = "cached rewrite cut off inside a ⟦token⟧", None
+            if cached is not None:
+                upgraded = upgrade_cached(source_md, cached)
+                problem = body_problem(source_md, upgraded)
+                if problem:
+                    stale, cached = f"cached rewrite unusable ({problem})", None
+                else:
+                    if upgraded != cached and not rebuild:
+                        output_file.write_text(upgraded)
+                    cached = upgraded
             if cached is not None:
                 output_md = cached
                 status, detail = "cached", ""
@@ -168,7 +187,6 @@ def optimise(
                         problem = "output cut off inside a ⟦token⟧"
                     if problem:
                         failed_file.write_text(output_md)
-                        body_file.unlink(missing_ok=True)
                         raise ValueError(f"{problem}, see {failed_file}")
                     output_file.write_text(output_md)
                     status, detail = "rewritten", ""
@@ -178,6 +196,8 @@ def optimise(
                 except Exception as error:
                     output_md, status = None, "failed"
                     detail = f"{stale}: {error}" if stale else str(error)
+                    if force and not rebuild and output_file.exists():
+                        output_file.replace(chapter_file(workdir, chapter.index, "stale"))
             if output_md is not None:
                 html, missing = blocks.restore(
                     convert.markdown_to_html(output_md), protected
@@ -186,7 +206,6 @@ def optimise(
                     if not rebuild:
                         failed_file.write_text(output_md)
                         output_file.unlink(missing_ok=True)
-                        body_file.unlink(missing_ok=True)
                     output_md, status = None, "failed"
                     detail = f"lost protected blocks: {', '.join(missing)}"
                 else:

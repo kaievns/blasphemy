@@ -37,8 +37,8 @@
 
 ## Prompt files
 
-Live in `src/blasphemy/prompts/`: `body.md` (hologram body pass, option O),
-`apparatus.md` (Key points + Check yourself), `primer.md`. Override the body
+Live in `src/blasphemy/prompts/`: `body.md` (hologram body pass, option O)
+and `primer.md`. Override the body
 prompt with `--prompt <path>` for experiments.
 
 ## Iteration log
@@ -48,6 +48,14 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-26: end-of-chapter apparatus removed (Kai: "i never read those").
+  `apparatus.md` and the apparatus pass are gone; `body.md` now says "No
+  summaries, recaps or questions" instead of deferring them to a later
+  pass; the primer context no longer mentions cumulative questions. The
+  retention review had found the apparatus could not work as built
+  (answers on the same screen as the questions, cumulative questions
+  answered by the current chapter) and that it repeated top-layer
+  overstatements.
 - 2026-09-25: `body.md` explicitness rules patched after the review (Kai
   approved). Connectives only where the author states or clearly implies
   the link, never an added cause, ranking, count or superlative. "Literal

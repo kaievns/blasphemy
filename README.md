@@ -3,8 +3,7 @@
 Rewrites an epub chapter by chapter with an agentic CLI, then reassembles an
 optimised epub: each chapter restructured by depth (the answer, then the
 shape of the problem, then the detail) with facts, terminology and code
-preserved, plus study apparatus (key points, self-check questions with
-answers).
+preserved.
 
 Built for one reader profile — Asperger-type autistic + medicated ADHD, senior
 engineer — on the evidence in [`specs/reader-profile.md`](specs/reader-profile.md).
@@ -40,9 +39,8 @@ Flags: [`docs/usage.md`](docs/usage.md).
    rewritten.
 2. One cheap pass builds a **book primer** (arc, chapter scopes, canonical
    terminology) that is prepended to every chapter call.
-3. Per chapter, two calls: a **body pass** (depth-ordered restructure against
-   a 55–70% length target) and an **apparatus pass** (key points and
-   questions under a word cap).
+3. Per chapter, one **body pass**: a depth-ordered restructure against a
+   55–70% length target.
 4. Assemble deterministically, then rebuild the epub with original styling,
    code markup, images, and anchors restored. The title gains an
    "(Optimised)" suffix and the cover an OPTIMISED banner.

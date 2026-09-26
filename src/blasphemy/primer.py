@@ -38,6 +38,5 @@ def chapter_context(primer: str, chapter: Chapter) -> str:
     return (
         f"\n\n# Book context\n\n{primer}\n\n"
         f"# Current chapter\n\nYou are rewriting chapter {chapter.index}: "
-        f"{chapter.title or chapter.href}. Chapters before it in the book may be "
-        f"referenced in cumulative questions; chapters after it may not."
+        f"{chapter.title or chapter.href}."
     )

@@ -19,8 +19,9 @@ software engineer, Asperger-type autistic + ADHD, on stimulant medication.
   recall/recognition are intact (Desaunay 2020: free recall g=−0.38, cued
   g=−0.08, ns). The hypothesis is about support at retrieval, cued questions
   at test; that the text's own organization supplies it is inference. The
-  single strongest retention lever for this profile, and in blasphemy it
-  lives in the apparatus (`docs/retention-2026-09-26.md`).
+  single strongest retention lever for this profile. blasphemy delivers
+  none since the end-of-chapter apparatus was removed (2026-09-26); see
+  `docs/retention-2026-09-26.md`.
 - **Strengths to exploit**: systemizing (if-then, rules, taxonomies), and
   exact wording and numbers retained and used (the reader's own account).
   Expository/technical text is the relative strength genre. The verbal
@@ -114,8 +115,9 @@ conflict once separated.
 18. End-of-chapter retrieval questions with answers (testing effect,
     g≈0.5–0.6, strongest lever). The benefit needs an attempt before the
     answer is visible. 1–2 cumulative questions to earlier chapters give
-    spacing only if answering them needs the earlier chapter; as built they
-    do not (a median 89% of each answer is in the current chapter).
+    spacing only if answering them needs the earlier chapter; as built until
+    2026-09-26 they did not (a median 89% of each answer was in the current
+    chapter).
 19. 2–3 targeted prequestions (g≈0.66 on prequestioned content, 0.01 on
     the rest: King-Shepard 2025).
 20. Pause/self-explanation prompts at inferential junctures (g≈0.55).
@@ -144,8 +146,9 @@ conflict once separated.
 Since 2026-09-15 production does not apply guidelines 4 (Orient), 9
 (embedded prompts), 19 (prequestions) and 20 (pauses): Orient, Watch for
 and pauses were retired because they restated the body
-(`specs/prompt.md`, 2026-09-13 and 2026-09-15). Guideline 17's recaps live
-only in the end-of-chapter Key points. Guideline 15 was shortened in
+(`specs/prompt.md`, 2026-09-13 and 2026-09-15). Since 2026-09-26 it does
+not apply 17 (recaps), 18 (retrieval questions) or 21 (Key points) either:
+the reader never read the end-of-chapter apparatus. Guideline 15 was shortened in
 `prompts/body.md` to "literal and flat" until 2026-09-25, and on the
 samples that read as hedge deletion (`docs/review-2026-09-25.md`); the
 prompt now keeps every hedge. Guidelines 1 and 5 hold for

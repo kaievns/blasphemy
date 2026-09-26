@@ -28,7 +28,7 @@ def test_short_chapters_skipped_long_rewritten(sample_epub, tmp_path):
 
 
 def test_cache_reused_and_force(sample_epub, tmp_path):
-    output = "# Cached\n\n" + " ".join(["word"] * 100)
+    output = "# Cached\n\n" + " ".join(["word"] * 300)
     calls = []
 
     def rewrite(md, chapter):
@@ -195,21 +195,12 @@ def test_unmatched_pre_reported_not_failed(sample_epub, tmp_path):
     assert "1 code block(s) left fenced" in ch1.detail
 
 
-def test_sane_allows_apparatus_floor_on_small_reference_chapters():
-    words = lambda n: " ".join(["w"] * n)
-    # a 233w availability table kept verbatim + ~220w apparatus = ratio 2.2
-    assert pipeline.sane(words(233), words(514))
-    # but the allowance is flat: it cannot excuse runaway output at scale
-    assert not pipeline.sane(words(2000), words(3400))
-
-
 def test_sane_ratio_bounds():
     words = lambda n: " ".join(["w"] * n)
     assert pipeline.sane(words(100), words(50))
     assert not pipeline.sane(words(100), words(4))
-    # ceiling = 1.5x + the flat apparatus allowance
-    assert pipeline.sane(words(100), words(400))
-    assert not pipeline.sane(words(100), words(401))
+    assert pipeline.sane(words(100), words(150))
+    assert not pipeline.sane(words(100), words(151))
 
 
 def test_workdir_for_is_content_addressed(sample_epub, tmp_path):
@@ -230,9 +221,9 @@ def test_banned_words_reported_in_detail(sample_epub, tmp_path):
 def test_rebuild_never_evicts_cache_on_unrestorable_chapter(math_epub, tmp_path):
     # first run caches a rewrite that drops the MATH token
     out, workdir, _ = optimise(
-        math_epub, tmp_path, lambda md, ch: "# M\n\n" + " ".join(["w"] * 100)
+        math_epub, tmp_path, lambda md, ch: "# M\n\n" + " ".join(["w"] * 300)
     )
-    (workdir / "000.md").write_text("# M\n\n" + " ".join(["w"] * 100))
+    (workdir / "000.md").write_text("# M\n\n" + " ".join(["w"] * 300))
     before = sorted(p.name for p in workdir.iterdir())
     _, _, results = optimise(
         math_epub, tmp_path, lambda md, ch: (_ for _ in ()).throw(AssertionError),
@@ -322,16 +313,94 @@ def test_cut_off_cache_fails_on_rebuild_and_stays(sample_epub, tmp_path):
     assert pipeline.chapter_file(workdir, 1).read_text() == cut
 
 
-def test_lost_blocks_evict_the_cached_body(math_epub, tmp_path):
-    workdir = tmp_path / "work"
-    workdir.mkdir()
-    body_file = pipeline.chapter_file(workdir, 0, "body")
-    body_file.write_text("# M\n\nbody without the math token")
-    rewrite = lambda md, chapter: "# M\n\n" + " ".join(["word"] * 100)
-    pipeline.optimise(math_epub, tmp_path / "o.epub", rewrite, workdir)
-    assert not body_file.exists()
-
-
 def test_chapter_file_names():
     assert pipeline.chapter_file("w", 7).name == "007.md"
-    assert pipeline.chapter_file("w", 7, "body").name == "007.body.md"
+    assert pipeline.chapter_file("w", 7, "failed").name == "007.failed.md"
+
+
+WHOLE = "# Chapter One\n\n" + " ".join(["word"] * 300)
+LEGACY = WHOLE + "\n\n## Key points\n\n- A claim.\n\n## Check yourself\n\n1. Why?\n\n**Answers**\n\n1. Because."
+
+
+def test_opening_line_sees_a_title_behind_an_anchor_on_the_same_line():
+    assert pipeline.opening_line("⟦ANCHOR:c1⟧ ⟦TITLE-0: 1 Foundations⟧\n\nx") == "⟦TITLE-0: 1 Foundations⟧"
+    assert pipeline.opening_line("\n⟦ANCHOR:a⟧ ⟦ANCHOR:b⟧\n\n# T\n") == "# T"
+
+
+def test_upgrade_cached_strips_the_retired_apparatus():
+    assert pipeline.upgrade_cached("# Chapter One\n\nsrc", LEGACY) == WHOLE
+    key_points_only = WHOLE + "\n\n## Key points\n\n- Front matter only."
+    assert pipeline.upgrade_cached("# Chapter One\n\nsrc", key_points_only) == WHOLE
+
+
+def test_upgrade_cached_keeps_a_books_own_key_points():
+    own = WHOLE + "\n\n## Key Points\n\n- The author's summary."
+    assert pipeline.upgrade_cached("# Chapter One\n\n## Key Points\n\nsrc", own) == own
+
+
+def test_upgrade_cached_removes_the_doubled_pandoc_title():
+    doubled = "# Chapter 1 - Introduction\n\n⟦ANCHOR:chapter-1⟧\n\n# Chapter 1 - Introduction\n\nBody."
+    assert pipeline.upgrade_cached("x", doubled) == "⟦ANCHOR:chapter-1⟧\n\n# Chapter 1 - Introduction\n\nBody."
+
+
+def test_upgrade_cached_leaves_current_output_alone():
+    assert pipeline.upgrade_cached("# Chapter One\n\nsrc", WHOLE) == WHOLE
+
+
+def seed_cache(tmp_path, text):
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    pipeline.chapter_file(workdir, 1).write_text(text)
+    return workdir
+
+
+def test_legacy_cache_is_cleaned_in_place_for_free(sample_epub, tmp_path):
+    workdir = seed_cache(tmp_path, LEGACY)
+    calls = []
+    results = pipeline.optimise(
+        sample_epub, tmp_path / "o.epub", lambda md, ch: calls.append(1), workdir, only={1}
+    )
+    assert calls == []
+    assert next(r for r in results if r.item_id == "ch1").status == "cached"
+    assert pipeline.chapter_file(workdir, 1).read_text() == WHOLE
+    ch1 = next(c for c in epub.chapters(epub.load(tmp_path / "o.epub")) if c.item_id == "ch1")
+    assert "Key points" not in ch1.html
+
+
+def test_legacy_cache_is_cleaned_but_not_written_on_rebuild(sample_epub, tmp_path):
+    workdir = seed_cache(tmp_path, LEGACY)
+    pipeline.optimise(
+        sample_epub, tmp_path / "o.epub", lambda md, ch: None, workdir, only={1}, rebuild=True
+    )
+    assert pipeline.chapter_file(workdir, 1).read_text() == LEGACY
+    ch1 = next(c for c in epub.chapters(epub.load(tmp_path / "o.epub")) if c.item_id == "ch1")
+    assert "Key points" not in ch1.html
+
+
+def test_cached_tail_fragment_is_rewritten(sample_epub, tmp_path):
+    workdir = seed_cache(tmp_path, "ections: the second half only " + " ".join(["w"] * 300))
+    calls = []
+
+    def rewrite(md, ch):
+        calls.append(ch.index)
+        return WHOLE
+
+    results = pipeline.optimise(sample_epub, tmp_path / "o.epub", rewrite, workdir, only={1})
+    assert calls == [1]
+    assert next(r for r in results if r.item_id == "ch1").status == "rewritten"
+
+
+def test_failed_force_run_never_serves_the_old_rewrite_again(sample_epub, tmp_path):
+    workdir = seed_cache(tmp_path, WHOLE)
+
+    def quota(md, ch):
+        raise RuntimeError("quota")
+
+    pipeline.optimise(sample_epub, tmp_path / "a.epub", quota, workdir, only={1}, force=True)
+    assert not pipeline.chapter_file(workdir, 1).exists()
+    assert pipeline.chapter_file(workdir, 1, "stale").read_text() == WHOLE
+    calls = []
+    pipeline.optimise(
+        sample_epub, tmp_path / "b.epub", lambda md, ch: calls.append(1) or WHOLE, workdir, only={1}
+    )
+    assert calls == [1]
