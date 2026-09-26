@@ -57,8 +57,11 @@ cache hits included, so it can describe input the cached output never saw.
   marked `failed` and the original content is kept — a failed chapter never
   blocks the book.
 - Body check before caching (`pipeline.body_problem`): the body fails when
-  it ends inside an unclosed ⟦token⟧, ends on a bare heading, or is under
-  35% of the chapter (a refusal). The lowest body ratio across the 98
+  it does not open with the chapter title (leading ⟦ANCHOR⟧ lines aside),
+  ends inside an unclosed ⟦token⟧, ends on a bare heading, or is under 35%
+  of the chapter (a refusal). The title rule catches tail fragments: 4 of
+  6 HLW ch9 validation draws (2026-09-26) came back as only the last part
+  of a long answer, one of them 12,352 words, which a ratio cannot see. The lowest body ratio across the 98
   sample rewrites was 0.56. A failed body goes to `NNN.failed.md` and the
   apparatus pass is never called. HLW ch4 (cut mid-token at a body ratio
   of 0.64) is the case this exists for: a word ratio cannot see it.

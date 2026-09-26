@@ -259,6 +259,21 @@ def test_body_problem_flags_cut_off_and_refused_bodies():
     assert "1%" in pipeline.body_problem(source, "I can't help with that chapter, sorry.")
 
 
+def test_body_problem_flags_a_tail_fragment():
+    source = "⟦TITLE-0: 9 Networks⟧\n\n" + " ".join(["w"] * 1000)
+    fragment = "ections*: hardware devices plus " + " ".join(["w"] * 700)
+    assert "title" in pipeline.body_problem(source, fragment)
+    whole = "⟦TITLE-0: 9 Networks⟧\n\n" + " ".join(["w"] * 700)
+    assert pipeline.body_problem(source, whole) == ""
+
+
+def test_body_problem_skips_leading_anchors_before_the_title():
+    source = "⟦ANCHOR:ch3⟧\n\n# Chapter 3\n\n" + " ".join(["w"] * 100)
+    body = "⟦ANCHOR:ch3⟧\n\n# Chapter 3\n\n" + " ".join(["w"] * 60)
+    assert pipeline.body_problem(source, body) == ""
+    assert "title" in pipeline.body_problem(source, "⟦ANCHOR:ch3⟧\n\n" + " ".join(["w"] * 60))
+
+
 def test_body_problem_allows_a_closing_code_fence():
     source = " ".join(["w"] * 100)
     body = " ".join(["w"] * 60) + "\n\n```\n# a shell comment\n```"

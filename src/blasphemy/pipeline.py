@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import blocks, convert, cover, epub, style
+from . import apparatus, blocks, convert, cover, epub, style
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
@@ -15,6 +15,7 @@ APPARATUS_ALLOWANCE = 250
 # the lowest body ratio across 98 sample rewrites (2026-09) was 0.56
 BODY_RATIO_MIN = 0.35
 UNCLOSED_TOKEN = re.compile(r"⟦[^⟦⟧]*(?=⟦|\Z)")
+ANCHORS_ONLY = re.compile(r"(?:⟦ANCHOR:[^⟧]*⟧\s*)+")
 
 
 @dataclass
@@ -74,9 +75,21 @@ def unclosed_token(md: str) -> bool:
     return bool(UNCLOSED_TOKEN.search(md))
 
 
+def opening_line(md: str) -> str:
+    for line in md.splitlines():
+        stripped = line.strip()
+        if stripped and not ANCHORS_ONLY.fullmatch(stripped):
+            return stripped
+    return ""
+
+
 def body_problem(source_md: str, body: str) -> str:
     """Why a body-pass result must not ship, or "" when it looks whole."""
     lines = [line for line in body.splitlines() if line.strip()]
+    if apparatus.is_title(opening_line(source_md)) and not apparatus.is_title(
+        opening_line(body)
+    ):
+        return "body does not open with the chapter title"
     if unclosed_token(body):
         return "body cut off inside a ⟦token⟧"
     if lines and lines[-1].lstrip().startswith("#"):
