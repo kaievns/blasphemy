@@ -38,7 +38,7 @@ general-student, expert) and design.
 | 55–70% compression (M6) | mixed | low | general | Saves 4.6 min per chapter. Examples beat extra definition study (d=0.74–1.67, Rawson et al. 2015) [general-student]; today 90% of 929 example sentences survive |
 | Terms verbatim (M7) | helps | medium | expertise | Holds on fidelity grounds; the autism premise (synonym = new referent) is unsupported, not refuted |
 | Expert register (M8) | mixed | low-med | expertise | Expertise reversal: novices gain d=0.505 from assistance, experts d=0.428 from less (Tetzlaff 2025, via prior check). Costly side for books outside your field (inference) |
-| Author-sourced connectives, kept hedges (M9, patched) | helps fidelity | medium | autism + general | See the A/B in `docs/review-2026-09-25.md` status |
+| Author-sourced connectives, kept hedges (M9, patched) | helps fidelity | medium | autism + general | Paired A/B, 6 chapters × 3 draws: hedges dropped 6.6 → 3.1, claims kept 31.8 → 35.3 of 40 (`specs/prompt.md`) |
 | Antecedent rule | helps | low | both | Sentence-initial pronouns 9.4% → 4.3%. Re-presenting the last 1–2 sentences offsets an interruption (Glanzer 1984) [general-student] |
 | Short sentences | rule right, output breaks it | high (defect) | ADHD | Sentences over 35 words 8.6% → 16.1% shipped; drafts were at 24% before and after the patch |
 | Bold | mixed | low | general | 1.09 per 1k vs 0.43 in the originals; none in 24/76 chapters |
@@ -83,7 +83,7 @@ retrieval events inside the body 0 · after the chapter 0
    first, echoed in Key points, then quizzed. LLM summaries overgeneralise at
    OR 4.85 against expert-written summaries, and accuracy prompts make it
    worse (OR 1.90, Peters & Chin-Yee 2025). The hedge patch halved hedge
-   deletion but left top-layer errors flat (A/B, `review-2026-09-25.md`).
+   deletion but left top-layer errors flat (A/B, `specs/prompt.md`).
    21.8% of quiz answers come from the first 15% of the body.
 4. **Prompts chosen by reading impression.** Compression and answer-first make
    text feel easier, and ease is the signal that comes apart from learning.

@@ -52,9 +52,18 @@ the repo.
   approved). Connectives only where the author states or clearly implies
   the link, never an added cause, ranking, count or superlative. "Literal
   and flat" replaced: keep every hedge and quantifier, put the author's
-  named exceptions next to it, never delete or strengthen one. Not yet
-  validated: planned 6 chapters × 3 draws, scored on hedge retention and
-  the 3 known high-severity errors.
+  named exceptions next to it, never delete or strengthen one. Validated
+  2026-09-26 by a paired A/B against the previous prompt: 6 chapters × 3
+  draws per arm, scored blind (40 frozen claims per chapter, known-error
+  patterns, top-layer and depth precision) with a skeptic re-check.
+  Hedges dropped 6.6 → 3.1 (fewer in 6/6 chapters), hedged claims kept
+  68% → 82%, claims kept 31.8 → 35.3 of 40, load-bearing claims altered
+  3.1 → 1.9, known errors recurring 3.6 → 2.2, depth errors 6.6 → 4.4 of
+  20. Unchanged: top-layer errors (8.1 → 7.7 per 1k words, noise: draw SD
+  2.6), high-severity errors, added causes. Bodies 4 points longer (0.72 →
+  0.76). Draw-to-draw SD within a chapter is about 1.8 claims, so
+  "generation variance" is real and about half the size of this effect.
+  Harness and data are local in `experiments/validation-2026-09-25/`.
 - 2026-09-25: review of the 4 sample books (`docs/review-2026-09-25.md`).
   Recall holds (0 of 126 load-bearing claims missing). Precision does not:
   hedge words kept 52% against 68% of prose, and the answer and shape
