@@ -165,6 +165,8 @@ def test_front_and_back_matter_detected_by_type_class_or_title(tmp_path):
         "db_appendix": '<div class="appendix"><h1>Appendix A. Notes</h1><p>x</p></div>',
         "pd_part": "<h1>Part II - Principles</h1><p>x</p>",
         "pd_appendix": "<h1>Appendix D - Example Postmortem</h1><p>x</p>",
+        "part_word": "<h1>Part One: Foundations</h1><p>x</p>",
+        "part_type": '<section epub:type="part"><h1>Principles</h1><p>x</p></section>',
         "rights": "<p>Copyright 2021. All rights reserved. ISBN 978</p>",
     }
     for name, body in cases.items():
@@ -179,6 +181,7 @@ def test_introductions_and_chapters_are_not_matter(tmp_path):
         "chapter_intro": "<h1>Chapter 1 - Introduction</h1><p>x</p>",
         "participation": "<h1>Participation and Its Limits</h1><p>x</p>",
         "parting": "<h1>Parting Words</h1><p>x</p>",
+        "copyright_law": "<h1>Copyright Law for Engineers</h1><p>x</p>",
         "chapter": '<section epub:type="bodymatter chapter"><h1>1 Foundations</h1><p>x</p></section>',
     }
     for name, body in cases.items():
@@ -202,3 +205,18 @@ def test_package_prefixes_survive_load_and_save(tmp_path):
     again = tmp_path / "again.epub"
     epub.save(epub.load(first), again)
     assert ("ibooks", "http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/") in epub.package_prefixes(again)
+
+
+def test_title_keeps_the_space_css_puts_between_spans(tmp_path):
+    chapter = _page(tmp_path, "spans", '<h1><span class="num">1</span><span>The Big Picture</span></h1><p>x</p>')
+    assert chapter.title == "1 The Big Picture"
+
+
+def test_single_quoted_package_prefix_is_read(tmp_path):
+    import zipfile
+
+    path = tmp_path / "q.epub"
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr("META-INF/container.xml", '<container><rootfiles><rootfile full-path="OPS/p.opf"/></rootfiles></container>')
+        z.writestr("OPS/p.opf", "<package prefix='ibooks: http://x/'></package>")
+    assert epub.package_prefixes(path) == [("ibooks", "http://x/")]

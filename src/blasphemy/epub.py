@@ -18,13 +18,14 @@ REFERENCE_TYPES = re.compile(r"\b(index|glossary|bibliography|toc|landmarks)\b",
 REFERENCE_CLASSES = REFERENCE_TYPES
 MATTER_TITLES = re.compile(
     r"^(foreword|preface|acknowledge?ments?|praise\b|reviews for|about the authors?|"
-    r"dedication|colophon|copyright|part\s+[ivxlcdm\d]+\b|appendix\b)",
+    r"dedication|colophon|copyright( page)?$|"
+    r"part\s+([ivxlcdm]+|\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b|appendix\b)",
     re.I,
 )
 MATTER_TYPES = re.compile(
     r"\b(frontmatter|backmatter|copyright-page|titlepage|halftitlepage|dedication|"
     r"epigraph|foreword|preface|acknowledgments|colophon|imprint|contributors|"
-    r"other-credits|errata|endnotes|rearnotes|appendix)\b",
+    r"other-credits|errata|endnotes|rearnotes|appendix|part)\b",
     re.I,
 )
 MATTER_CLASSES = re.compile(r"^(preface|colophon|dedication|acknowledgments|appendix|copyright)$", re.I)
@@ -93,8 +94,8 @@ def package_prefixes(path: str | Path) -> list[tuple[str, str]]:
         opf = re.search(r'full-path="([^"]+)"', container)
         head = archive.read(opf.group(1)).decode("utf-8", "replace") if opf else ""
     package = re.search(r"<package\b[^>]*>", head, re.S)
-    declared = re.search(r'\bprefix="([^"]*)"', package.group()) if package else None
-    return re.findall(r"([\w-]+):\s+(\S+)", declared.group(1)) if declared else []
+    declared = re.search(r"\bprefix\s*=\s*([\"'])(.*?)\1", package.group(), re.S) if package else None
+    return re.findall(r"([\w-]+):\s+(\S+)", declared.group(2)) if declared else []
 
 
 def load(path: str | Path) -> epub.EpubBook:
@@ -129,7 +130,8 @@ def chapters(book: epub.EpubBook) -> list[Chapter]:
         html = item.content.decode("utf-8", errors="replace")
         soup = BeautifulSoup(html, "html.parser")
         heading = soup.find(["h1", "h2", "h3"])
-        title = heading.get_text(strip=True) if heading else ""
+        # spans a publisher separates with CSS ("1" "The Big Picture") need a space
+        title = " ".join(heading.get_text(" ", strip=True).split()) if heading else ""
         words = len(soup.get_text().split())
         result.append(
             Chapter(
