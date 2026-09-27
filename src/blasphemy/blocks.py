@@ -9,6 +9,8 @@ HEADINGS = ["h1", "h2", "h3"]
 BLOCK_LEVEL = (
     "figure", "table", "pre", "div", "p", "header", "h1", "h2", "h3", "aside", "section",
 )
+# inline or heading elements that can never hold a block; unwrapped around one
+BLOCK_WRAPPERS_TO_DROP = ("h1", "h2", "h3", "h4", "h5", "h6", "em", "strong", "i", "b", "span", "u")
 # publisher callouts: No Starch <aside epub:type="sidebar"><section class="note">,
 # DocBook/O'Reilly <div class="note|tip|warning|caution|important|sidebar">
 CALLOUT_CLASSES = re.compile(r"^(note|tip|warning|caution|important|sidebar|box)$", re.I)
@@ -84,7 +86,7 @@ def _callout_label(node) -> str:
         for cls in node.get("class", []):
             if CALLOUT_LABELS.match(cls):
                 text = cls.capitalize()
-    return text[:20]
+    return " ".join(text.split())
 
 
 def _gist(node) -> str:
@@ -259,7 +261,25 @@ def _dress(heading, shell_html: str) -> bool:
         sibling = sibling.find_next_sibling()
     if not paragraphs:
         return False
+    root = heading
+    while root.parent is not None:
+        root = root.parent
+    own = {node["id"] for node in [heading, *heading.find_all(id=True)] if node.get("id")}
+    taken = {node["id"] for node in root.find_all(id=True)} - own
+    for node in callout.find_all(id=True):
+        if node["id"] in taken:
+            del node["id"]
+    carried = own - {node["id"] for node in callout.find_all(id=True)}
+    home = label if label is not None else callout
+    for anchor_id in sorted(carried):
+        home.insert(0, BeautifulSoup(f'<a id="{anchor_id}"></a>', "html.parser").a)
     is_rule = lambda node: bool(rules.search(" ".join(node.get("class", []))))
+    # the round trip turned the shell's rules into bare <hr>s beside the note
+    before, after = heading.find_previous_sibling(), paragraphs[-1].find_next_sibling()
+    if before is not None and before.name == "hr" and callout.find(class_=rules):
+        before.decompose()
+    if after is not None and after.name == "hr" and callout.find(class_=rules):
+        after.decompose()
     for child in list(container.find_all(True, recursive=False)):
         if child is not label and not is_rule(child):
             child.decompose()
@@ -298,7 +318,7 @@ def restyle_notes(html: str, original_html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     changed = False
     for heading in soup.find_all(["h2", "h3", "h4"]):
-        shell = shells.get(heading.get_text(" ", strip=True).casefold())
+        shell = shells.get(" ".join(heading.get_text(" ", strip=True).split()).casefold())
         if shell is None:
             continue
         parent = heading.find_parent(["aside", "div", "section"])
@@ -351,6 +371,12 @@ def lift_blocks(html: str) -> str:
     blocks and their neighbouring anchor or text in one paragraph, so lift
     each block out and keep what surrounds it as paragraphs of its own."""
     soup = BeautifulSoup(html, "html.parser")
+    for block in soup.find_all(BLOCK_LEVEL):
+        parent = block.parent
+        while parent is not None and parent.name in BLOCK_WRAPPERS_TO_DROP:
+            outer = parent.parent
+            parent.unwrap()
+            parent = outer
     for para in soup.find_all("p"):
         if not any(getattr(c, "name", None) in BLOCK_LEVEL for c in para.children):
             continue
@@ -475,6 +501,14 @@ def restore_captions(html: str, original_html: str) -> str:
         for anchor in para.find_all("a", id=True):
             if anchor["id"] not in kept:
                 replacement.insert(0, anchor.extract())
+        for node in [replacement, *replacement.find_all(id=True)]:
+            for twin in soup.find_all(id=node.get("id")) if node.get("id") else []:
+                if twin is para or para in twin.parents:
+                    continue
+                if twin.name == "a" and not twin.get_text(strip=True):
+                    twin.decompose()
+                else:
+                    del node["id"]
         if figure is not None:
             table = para.find_next_sibling()
             if table is None or table.name != "table":

@@ -534,3 +534,37 @@ def test_text_around_a_lifted_block_stays_in_paragraphs():
 def test_paragraphs_without_blocks_are_untouched():
     html = "<p>Plain <em>text</em>.</p>"
     assert blocks.lift_blocks(html) == html
+
+
+def test_long_sidebar_title_is_reboxed():
+    original = (
+        '<aside epub:type="sidebar"><div class="top hr"><hr/></div><section class="box">'
+        "<h2>Non-Generic Inner Functions</h2><p>Old body.</p>"
+        '<div class="bottom hr"><hr/></div></section></aside>'
+    )
+    rewritten = "<hr/><h2>Non-Generic Inner Functions</h2><p>New body.</p><hr/><p>After.</p>"
+    out = blocks.restyle_notes(rewritten, original)
+    assert '<section class="box">' in out and "New body." in out
+    assert out.count("<hr/>") == 2  # the shell's own two rules, not the bare ones
+
+
+def test_rebox_keeps_ids_unique_and_the_headings_anchor():
+    original = (
+        '<aside epub:type="sidebar"><section class="note"><h2 id="n1">Note</h2>'
+        "<p>Old.</p></section></aside>"
+    )
+    rewritten = '<p><a id="n1"></a>Elsewhere.</p><h2><a id="Page_9"></a>Note</h2><p>New.</p>'
+    out = blocks.restyle_notes(rewritten, original)
+    assert out.count('id="n1"') == 1
+    assert 'id="Page_9"' in out
+
+
+def test_restored_caption_does_not_duplicate_an_anchor_placed_elsewhere():
+    rewritten = '<p><a id="listing2-1"></a>See below.</p><pre><code>ls</code></pre><p>Listing 2-1: Listing files</p>'
+    out = blocks.restore_captions(rewritten, CAPTIONED_HTML)
+    assert out.count('id="listing2-1"') == 1 and 'class="CodeListingCaption"' in out
+
+
+def test_block_inside_a_heading_or_emphasis_is_unwrapped():
+    out = blocks.lift_blocks("<h1><header><h1>1 Foundations</h1></header></h1><p><em><figure>F</figure></em></p>")
+    assert out == "<header><h1>1 Foundations</h1></header><figure>F</figure>"
