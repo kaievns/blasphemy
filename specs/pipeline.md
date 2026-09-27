@@ -23,10 +23,11 @@ information.
 - **Default model:** Claude Opus 5.5 at `high` effort on both providers
   (`claude-opus-5-5` on claude, `claude-opus-5.5` on kiro), since
   2026-09-27 at Kai's request; pinned ids so the default does not drift
-  when an alias moves. Fable (the default from 2026-08-25) produced every
-  validated sample: the hedge A/B, the opening-check A/B and the P/P2
-  comparison ran on Fable, so those results are not yet confirmed on
-  Opus 5.5. Configurable via `--model` / `--effort`.
+  when an alias moves. A blind A/B on the production setup preferred it
+  to Fable (the default from 2026-08-25) on fidelity and structure at a
+  quarter of the cost (`prompt.md`, iteration log, 2026-09-27). The hedge
+  and opening-check A/Bs ran on Fable and were not repeated on Opus.
+  Configurable via `--model` / `--effort`.
 - **Book types:** non-fiction + technical. Rewriting can be aggressive.
 
 ## Flow

@@ -29,7 +29,7 @@ Equivalent direct calls:
 Key flags: `--provider` (`claude` default, or `kiro`), `--model` (provider-specific,
 defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
-`--effort` (kiro defaults to `high`), `--timeout` seconds per call (default 2400),
+`--effort` (default `high`), `--timeout` seconds per call (default 2400),
 `--no-primer`, `--no-check` to skip the opening check, `--force` to ignore
 cached rewrites. Each rewritten chapter's opening-check fixes, applied and
 rejected, are in `.blasphemy/<book>/NNN.check.json`.

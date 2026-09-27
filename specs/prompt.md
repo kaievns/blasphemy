@@ -48,6 +48,28 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-27: model A/B, Fable (no effort flag) vs Opus 5.5 at `high`, on
+  the production setup (P body prompt + opening check), 6 chapters × 3
+  draws. Fidelity, judged blind against the frozen 40-claim inventories
+  with a skeptic recheck: Opus kept 39.3 vs 37.7 claims (better in 6 of 6
+  chapters), altered 0.7 vs 2.2, kept 97% vs 91% of hedged claims (6/6),
+  and made 2.5 vs 3.2 top-layer errors per 1k words (5/6) and 1.4 vs 3.2
+  errors in 20 sampled deeper sentences (5/6). Structure, judged blind in
+  pairs against Kai's criteria (sums over 18 pairs): Opus preferred in 14
+  (3 clear); readability 74 vs 50, not rushed 73 vs 59, context before
+  detail 78 vs 68, top-layer errors 26 vs 43; but restatements 104 vs 78,
+  no-duplication 50 vs 63, reasoning at the top 67 vs 74. The judges saw
+  the same split in almost every pair: Fable compresses into long
+  dash- and semicolon-chained sentences (27% over 35 words vs 5.5%), Opus
+  writes short declarative sentences, keeps lists, uses claim headings,
+  and restates top-level claims as sections open. Fable's 4 wins were
+  where the author's voice carries the chapter (Rust ch10, Stats ch11).
+  Opus bodies ran 90% vs 80% of source, 265 s vs 596 s, with no
+  output-limit continuations (Fable 1.17 messages per body), at a reported
+  $1.26 vs $5.14 per chapter. Chapter 1 of 4 books: Opus preferred in 3
+  of 4. P2 on Opus: P preferred in 3 of 4; P2 cut restatements 31 → 25
+  but lowered readability 16 → 13 and texture 15 → 13, and one P2 draft
+  dropped nearly every anchor. Samples `experiments/model-2026-09-27/`.
 - 2026-09-27: options P and P2 — fractal structure, from Kai's read of O:
   the answer-first opening "feels rushed", bottom-line facts without
   reasoning, "like an answer from googling", no author texture; wanted
