@@ -168,9 +168,9 @@ rights reserved". An Introduction, or anything typed chapter or bodymatter,
 is always rewritten. On the 4 sample books this passes through the 22
 non-chapters the 2026-09-25 review found and none of the 76 chapters.
 
-## Rewrite architecture (hologram body since 2026-09-15, one pass since 2026-09-26)
+## Rewrite architecture (hologram body since 2026-09-15, opening check since 2026-09-27)
 
-One Claude call per chapter (a second only when a banned word slips):
+Two Claude calls per chapter (a third only when a banned word slips):
 
 1. **Body pass** (`prompts/body.md`): the hologram restructure (the answer
    under the title, the shape of the problem as narrative, depth sections
@@ -179,8 +179,26 @@ One Claude call per chapter (a second only when a banned word slips):
    the user message (`cli.py`) and never measured. Framing matters more than
    numbers: a comprehension-first framing ignores numeric targets entirely
    (H/I experiments).
-The body ships as written. The body check requires it to open with the
-chapter title (after leading ⟦ANCHOR⟧ tokens) whenever the source does.
+2. **Opening check** (`prompts/check.md`, `check.py`): the answer layer and
+   the first two sections, the part a reader may stop at, are checked
+   sentence by sentence against the original in a fresh call. The reply is
+   JSON fixes: the exact sentence, the original's supporting passage, and a
+   replacement that says only what the original supports. A fix is applied
+   only if its sentence occurs once in the opening, its quoted passage is
+   really in the original, it keeps every ⟦token⟧, and it adds no banned
+   word; everything else is recorded as rejected in `NNN.check.json`. A
+   failed check call keeps the unpatched body. `--no-check` skips the pass.
+
+   Measured 2026-09-27 on 18 body drafts (6 chapters × 3), each judged
+   blind with and without the check: opening errors 7.6 → 4.7 per 1,000
+   words (14 drafts better, 4 worse; re-judging identical text varies by
+   about 1.0), recurring known errors 2.1 → 1.3, claims kept 35.8 → 36.9
+   of 40. 131 fixes applied, 4 rejected for quoting evidence the original
+   does not contain.
+
+The body ships as written after that. The body check requires it to open
+with the chapter title (after leading ⟦ANCHOR⟧ tokens) whenever the source
+does.
 
 The end-of-chapter apparatus (Key points, Check yourself, Answers) was
 removed on 2026-09-26: Kai never read it, it cost one call per chapter, it

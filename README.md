@@ -39,8 +39,9 @@ Flags: [`docs/usage.md`](docs/usage.md).
    part dividers and appendices.
 2. One cheap pass builds a **book primer** (arc, chapter scopes, canonical
    terminology) that is prepended to every chapter call.
-3. Per chapter, one **body pass**: a depth-ordered restructure against a
-   55–70% length target.
+3. Per chapter, a **body pass** (a depth-ordered restructure against a
+   55–70% length target), then an **opening check** that corrects the
+   answer and first sections wherever they say more than the original.
 4. Assemble deterministically, then rebuild the epub with original styling,
    code markup, images, and anchors restored. The title gains an
    "(Optimised)" suffix and the cover an OPTIMISED banner.

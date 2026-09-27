@@ -89,7 +89,7 @@ Just below: sentence-shape drift (certain defect, harm not shown).
 | # | Lever | Confidence | Cost, including cost to you |
 |---|---|---|---|
 | 1 | **Measure on you** (protocol below). Any retrieval mechanism now has to earn its friction, and only this can show whether one does | high as a method, low that the planned size settles small effects | Item and scoring calls; 4–6 h of quizzes; 12 chapters read in the original; a weekly start task |
-| 2 | **Top-layer fidelity checks**: an absolutes list in `body.md` (only, always, never, all, must); flag absolute density above 1.15× source; flag answer/shape sentences with a causal link the source lacks | medium on direction | 1–3 h; flags cost 0 calls, a verify pass costs calls |
+| 2 | **Top-layer fidelity checks**. Done 2026-09-27 as the opening check: opening errors 7.6 → 4.7 per 1k words on 18 blind-judged drafts (`specs/pipeline.md`) | measured | 1 call per chapter |
 | 3 | **Nav rebuilt from the rewritten headings**; drop or repair the page-list | high on the defect, medium on the cost | 3–4 h, 0 calls |
 | 4 | **In-flow retrieval, as a test arm only**: 1–2 why/how questions from chapters N-1 and N-4 at the top of chapter N, answers behind popups. It sits in the reading path rather than after the chapter end you skip. ADHD readers recall fewer central ideas but recognise them like controls, which points at missing retrieval cues (Yeari 2019) [ND-adult, expository text] | low-medium; adoption by you is the open question | 2–3 h, 0 calls. It repeats questions word for word, the complaint that retired Orient |
 

@@ -1,9 +1,10 @@
 import argparse
+import json
 import sys
 from importlib import resources
 from pathlib import Path
 
-from . import epub, pipeline, primer, providers, report, style
+from . import check, epub, pipeline, primer, providers, report, style
 
 
 def default_prompt(name: str = "body") -> str:
@@ -50,6 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
         "agent, uncached chapters keep their original text",
     )
     parser.add_argument("--no-primer", action="store_true", help="skip book primer")
+    parser.add_argument(
+        "--no-check", action="store_true",
+        help="skip the pass that checks the chapter's opening against the original",
+    )
     parser.add_argument("--list", action="store_true", help="list chapters and exit")
     return parser
 
@@ -94,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     body_prompt = args.prompt.read_text() if args.prompt else default_prompt("body")
+    check_prompt = default_prompt("check")
     out_path = args.output or args.epub.with_suffix(".optimised.epub")
     workdir = pipeline.workdir_for(args.epub)
 
@@ -159,7 +165,21 @@ def main(argv: list[str] | None = None) -> int:
             failed = pipeline.chapter_file(workdir, chapter.index, "failed")
             failed.write_text(body)
             raise ValueError(f"{problem}, see {failed}")
-        return body
+        if args.no_check:
+            return body
+        record = pipeline.chapter_file(workdir, chapter.index, "check").with_suffix(".json")
+        try:
+            patched, report_ = check.patch(
+                chapter_md, body, lambda text: call_agent(text, check_prompt)
+            )
+        except Exception as error:
+            record.write_text(json.dumps({"error": str(error)}, indent=1))
+            return body
+        if pipeline.body_problem(chapter_md, patched):
+            report_["reverted"] = pipeline.body_problem(chapter_md, patched)
+            patched = body
+        record.write_text(json.dumps(report_, indent=1, ensure_ascii=False))
+        return patched
 
     try:
         results = pipeline.optimise(
