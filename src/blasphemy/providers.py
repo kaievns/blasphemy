@@ -101,7 +101,7 @@ CLAUDE = Provider(
     name="claude",
     binary="claude",
     default_model="claude-opus-5-5",
-    default_effort="high",
+    default_effort="xhigh",
     base_args=(
         "-p",
         "--output-format",
@@ -192,7 +192,7 @@ KIRO = Provider(
     name="kiro",
     binary="kiro-cli",
     default_model="claude-opus-5.5",
-    default_effort="high",
+    default_effort="xhigh",
     base_args=("chat", "--no-interactive", "--trust-tools=", "--wrap", "never"),
     model_flag="--model",
     effort_flag="--effort",

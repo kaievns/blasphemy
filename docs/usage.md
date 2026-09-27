@@ -29,7 +29,7 @@ Equivalent direct calls:
 Key flags: `--provider` (`claude` default, or `kiro`), `--model` (provider-specific,
 defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
-`--effort` (default `high`), `--timeout` seconds per call (default 2400),
+`--effort` (default `xhigh`), `--timeout` seconds per call (default 2400),
 `--no-primer`, `--no-check` to skip the opening check, `--force` to ignore
 cached rewrites. Each rewritten chapter's opening-check fixes, applied and
 rejected, are in `.blasphemy/<book>/NNN.check.json`.
@@ -58,7 +58,7 @@ PATH. Override explicitly with `BLASPHEMY_CLAUDE_BIN` / `BLASPHEMY_KIRO_BIN`.
 ### claude (default)
 
 `claude -p` with the system prompt on `--system-prompt`, content on stdin,
-tools disabled. Defaults to `claude-opus-5-5` at `high` effort; any id or
+tools disabled. Defaults to `claude-opus-5-5` at `xhigh` effort; any id or
 alias `claude --model` accepts works (`opus` resolves to the 1M-context
 `claude-opus-5-5[1m]`, `fable`, `sonnet`, `haiku`).
 Never pass `--bare`: it forces API-key auth and bypasses the subscription.
@@ -78,7 +78,7 @@ result counts as empty output and is retried.
 
 `kiro-cli chat --no-interactive` (the bare `kiro` command opens the IDE).
 Install with `curl -fsSL https://cli.kiro.dev/install | bash`. Defaults to
-`claude-opus-5.5` at `high` effort; override with `--model` / `--effort`,
+`claude-opus-5.5` at `xhigh` effort; override with `--model` / `--effort`,
 list valid ids with `kiro-cli chat --list-models`. Constraints that shape the integration, verified against
 kiro-cli 2.19:
 

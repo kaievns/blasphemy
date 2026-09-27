@@ -18,7 +18,7 @@ Retune the prompts in `src/blasphemy/prompts/` for anyone else.
 - Optional alternative: [Kiro CLI](https://kiro.dev) 2.x (`kiro-cli`), selected
   with `--provider kiro`; rides your `kiro-cli login` session
   ([details](docs/usage.md#providers))
-- Both providers default to Claude Opus 5.5 at `high` effort
+- Both providers default to Claude Opus 5.5 at `xhigh` effort
 
 ## Quickstart
 

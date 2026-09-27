@@ -20,17 +20,17 @@ information.
   auth); `kiro` is opt-in via `--provider kiro`. A provider without a system-prompt flag
   gets the system prompt folded into stdin. Binary lookup falls back past
   `PATH` to the usual install dirs because cron/make/nohup shells lose it.
-- **Default model:** Claude Opus 5.5 at `high` effort on both providers
-  (`claude-opus-5-5` on claude, `claude-opus-5.5` on kiro), since
+- **Default model:** Claude Opus 5.5 at `xhigh` effort on both providers
+  (`claude-opus-5-5` on claude, `claude-opus-5.5` on kiro), set
   2026-09-27 at Kai's request; pinned ids so the default does not drift
-  when an alias moves. A blind A/B on the production setup preferred it
-  to Fable (the default from 2026-08-25) on fidelity and structure at a
-  quarter of the cost (`prompt.md`, iteration log, 2026-09-27). `xhigh`
-  matched `high` on fidelity with a slight, not significant, structural
-  edge at 1.9× the cost; `max` ranked last and outruns the default
-  timeout (same log). The hedge and opening-check A/Bs ran on Fable and
-  were not repeated on Opus.
-  Configurable via `--model` / `--effort`.
+  when an alias moves. A blind A/B on the production setup preferred Opus
+  5.5 to Fable (the default from 2026-08-25) on fidelity and structure at
+  a quarter of the cost. `xhigh` matched `high` on fidelity with a slight,
+  not significant, structural edge at 1.9× the cost and 2.5× the time;
+  `max` ranked last and outruns the default timeout (`prompt.md`,
+  iteration log, 2026-09-27). The hedge and opening-check A/Bs ran on
+  Fable and were not repeated on Opus. Configurable via `--model` /
+  `--effort`.
 - **Book types:** non-fiction + technical. Rewriting can be aggressive.
 
 ## Flow
