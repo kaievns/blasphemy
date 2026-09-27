@@ -47,3 +47,69 @@ def test_text_survives_roundtrip():
     html = convert.markdown_to_html(md)
     for fragment in ("Title", "styled", "x = 1"):
         assert fragment in html
+
+
+def roundtrip(html):
+    return convert.markdown_to_html(convert.html_to_markdown(html))
+
+
+def test_code_holding_a_fence_line_stays_one_listing():
+    # Rust for Rustaceans ch6: doc-test examples inside a listing
+    code = "/// ```\n/// let x = 1;\n/// ```\n```rust\nfn f() {}\n```"
+    back = roundtrip(f"<pre><code>{code}</code></pre><p>After prose.</p>")
+    assert back.count("<pre>") == 1
+    assert "<p>After prose.</p>" in back
+    assert "fn f() {}" in back.split("</pre>")[0]
+
+
+def test_code_inside_list_items_stays_code():
+    # How Linux Works: numbered steps with a listing under each
+    html = "<ol><li><p>Run this:</p><pre><code>$ ls -l</code></pre></li><li><p>Then that.</p></li></ol>"
+    back = roundtrip(html)
+    assert "<pre><code>$ ls -l" in back
+    assert back.count("<li>") == 2
+
+
+def test_model_markdown_with_three_space_list_indent():
+    md = "1. Run this:\n\n   ```\n   $ ls\n   ```\n\n2. Then that.\n"
+    html = convert.markdown_to_html(md)
+    assert "<pre><code>$ ls" in html and html.count("<li>") == 2
+
+
+def test_definition_lists_survive():
+    back = roundtrip("<dl><dt>Toil</dt><dd>Manual, repetitive work.</dd></dl>")
+    assert "<dt>Toil</dt>" in back and "<dd>Manual, repetitive work.</dd>" in back
+    assert ":   " not in back
+
+
+def test_bare_placeholder_in_model_prose_is_text():
+    html = convert.markdown_to_html("See /run/user/<uid> and <profile-name>, plus x<sup>2</sup>.")
+    assert "/run/user/&lt;uid&gt;" in html
+    assert "&lt;profile-name&gt;" in html
+    assert "<sup>2</sup>" in html
+
+
+def test_output_is_xhtml():
+    html = convert.markdown_to_html("a  \nb\n\n---\n\n![alt](x.png)")
+    assert "<br />" in html and "<hr />" in html and "/>" in html.split("<img")[1]
+
+
+def test_placeholders_inside_code_stay_plain_code():
+    # How Linux Works: $ cp <var>file1</var> <var>file2</var>
+    back = roundtrip("<pre><code>$ cp <var>file1</var> <var>file2</var></code></pre>")
+    assert "$ cp file1 file2" in back
+    assert "&lt;var&gt;" not in back
+    inline = roundtrip("<p>Run <code>ls <var>dir</var></code> now.</p>")
+    assert "<code>ls dir</code>" in inline
+
+
+def test_numbered_definition_terms_stay_terms():
+    # Site Reliability Engineering ch7: "1) No automation" etc.
+    back = roundtrip("<dl><dt>1) No automation</dt><dd><p>Manual failover.</p></dd>"
+                     "<dt>2) Scripts</dt><dd><p>A script at home.</p></dd></dl>")
+    assert back.count("<dt>") == 2 and "<ol" not in back
+    assert "<dt>1) No automation</dt>" in back
+
+
+def test_empty_definition_term_does_not_break_conversion():
+    assert "Orphan definition." in roundtrip("<dl><dt></dt><dd>Orphan definition.</dd></dl>")

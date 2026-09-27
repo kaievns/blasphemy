@@ -8,7 +8,11 @@ information.
 
 ## Decisions (locked 2026-08-23)
 
-- **Stack:** Python 3.12, pytest, ebooklib + markdownify + markdown.
+- **Stack:** Python 3.12, pytest, ebooklib + markdownify (html→md) +
+  markdown-it-py (md→html, CommonMark with tables and definition lists).
+  CommonMark because that is what a model writes: list content indented by
+  marker width and fences nested in list items, both of which
+  Python-Markdown rejected.
 - **Model access:** an agent CLI in headless mode, not a vendor SDK — keeps
   subscription auth and avoids per-token billing. Providers are data
   (`providers.py`): binary, base flags, and optional model/effort/system-prompt
@@ -101,15 +105,27 @@ Listing captions (`p.CodeListingCaption`) and table titles
 (`figcaption.TableTitle` inside a `<figure>` around the table) travel as
 prose and come back as plain paragraphs. `restore_captions` matches them to
 the originals by label ("Table 2-1") and copies the original element over,
-re-wrapping an adjacent `<table>` into its `<figure>`. Image figures are
+re-wrapping an adjacent `<table>` into its `<figure>`. A paragraph counts as
+the caption only when it opens with the label and the original caption's
+separator, stays within about twice the original's length, and sits next to
+a `<pre>` or `<table>`: prose that opens "Listing 2-1 shows…" is left alone.
+Anchors inside the paragraph move into the restored caption, and a table
+title with no table beside it stays a paragraph rather than becoming a bare
+`<figcaption>`. Image figures are
 excluded: their caption travels inside the protected figure, and an older
 cache that also kept the caption as prose would otherwise get it twice.
 
 `<var>` passes through as inline HTML with its text escaped, like `<sup>`.
 Placeholders are written `<profile-name>`; unescaped they came back as a fake
 tag and the reader swallowed them, so `[profile.<profile-name>.package.]`
-read as `[profile..package.]`. This covers `<var>` input only: a bare
-`<uid>` the model writes in prose is still swallowed on the way back.
+read as `[profile..package.]`. Inside code, `<var>`/`<sup>`/`<sub>`/`<u>`
+become plain text instead (HLW writes `$ cp <var>file1</var>`; as tags they
+showed literally and the listing's markup could not be matched back, 145
+listings), and the original `<pre>` markup restores the styling. On the way
+back, any tag that is not an HTML element (`<uid>`, `<profile-name>`) renders
+as text. Code containing backtick runs gets a fence one backtick longer, and
+a definition term that opens with a list or heading marker ("1) No
+automation") is escaped so it stays a term.
 
 ### Callouts are content, not markup
 
@@ -125,9 +141,12 @@ for.
 What *is* restored is styling for the notes the model chose to keep as a
 `## Note` heading plus paragraphs: `restyle_notes` reuses the original
 callout of the same label (No Starch's `<aside epub:type="sidebar"><section
-class="note">`, DocBook's `div.note|tip|warning|…`) as a shell, swapping
-its body for the rewritten paragraphs, so the label, rules and italics come
-back around the model's text. A dissolved note is left alone. The chapter
+class="note">`, DocBook's `div.note|tip|warning|…`) as a shell, stripped to
+its label and rules, and puts the rewritten paragraphs inside, so the label,
+rules and italics come back around the model's text. It takes at most as
+many following paragraphs as the original callout held: the note has no end
+marker in markdown, and taking every paragraph swallowed main text (and a
+shell that kept its own body showed the original listing twice). A dissolved note is left alone. The chapter
 title detector skips headings inside callouts, or a chapter without a
 styled title would take a note's "Note" heading as the title.
 
@@ -258,9 +277,7 @@ and deferred; revisit if back-reference fidelity is lacking in practice.
 
 - A referenced anchor the model drops falls back to the top of its chapter.
   Cross-references by section number point at numbered headings the
-  restructure removes (37–38 dangling in HLW). `restore_captions` replaces
-  any unclassed paragraph that starts with a caption label, deleting its
-  prose and anchors (13 duplicate ids, 16 broken Rust links).
+  restructure removes (37–38 dangling in HLW).
 - Chapters are sent whole. HLW ch4 (17,286 words) came back cut mid-token;
   an output cap is the suspected cause, not confirmed. The body check now
   fails such a chapter instead of shipping it, but the chapter still needs
@@ -269,8 +286,9 @@ and deferred; revisit if back-reference fidelity is lacking in practice.
   nothing enforces them. Styled images and figures are protected tokens.
 - Tables with colspan/rowspan flatten (markdown can't express merges); cell
   data survives.
-- The HTML↔markdown round trip breaks four constructs: code containing a
-  line-initial triple-backtick fence (the fence closes early and code and
-  prose swap), code nested in list items, definition lists (no `def_list`
-  on the way back), and bare `<placeholder>` text. See
-  `docs/review-2026-09-25.md`.
+- The HTML↔markdown round trip, fed back unchanged over the 4 sample
+  books, keeps every listing (595/595, 116/116, 22/22 with identical text),
+  every list item and caption class in HLW, Rust and Stats, 47 of SRE's 49
+  definition lists, and produces no duplicate ids. Chapters rewritten
+  before 2026-09-27 were generated from the broken conversion and need
+  `--force` to benefit.

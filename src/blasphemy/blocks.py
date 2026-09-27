@@ -232,30 +232,46 @@ def _retitle(html: str, original: str) -> str:
     return original + html
 
 
+def _label_block(node):
+    head = node.find(["h1", "h2", "h3", "h4", "h5", "h6"]) or node.find(
+        ["p", "span"], class_=re.compile("title|head", re.I)
+    )
+    if head is not None and head.name == "span":
+        head = head.find_parent(["p", "h1", "h2", "h3", "h4", "h5", "h6"]) or head
+    return head
+
+
 def _dress(heading, shell_html: str) -> bool:
-    """Put the paragraphs after `heading` inside the publisher's callout shell."""
+    """Put the paragraphs after `heading` inside the publisher's callout shell,
+    at most as many as the original callout held."""
+    callout = BeautifulSoup(shell_html, "html.parser").find(True)
+    label = _label_block(callout)
+    container = label.parent if label is not None else callout
+    rules = re.compile("hr")
+    held = [
+        p for p in container.find_all("p", recursive=False)
+        if p is not label and not rules.search(" ".join(p.get("class", [])))
+    ]
     paragraphs = []
     sibling = heading.find_next_sibling()
-    while sibling is not None and sibling.name == "p":
+    while sibling is not None and sibling.name == "p" and len(paragraphs) < max(len(held), 1):
         paragraphs.append(sibling)
         sibling = sibling.find_next_sibling()
     if not paragraphs:
         return False
-    callout = BeautifulSoup(shell_html, "html.parser").find(True)
-    body_paras = [
-        p for p in callout.find_all("p") if not p.find_parent(class_=re.compile("hr"))
-    ]
-    anchor = body_paras[0] if body_paras else None
-    for p in body_paras[1:]:
-        p.decompose()
+    is_rule = lambda node: bool(rules.search(" ".join(node.get("class", []))))
+    for child in list(container.find_all(True, recursive=False)):
+        if child is not label and not is_rule(child):
+            child.decompose()
+    children = container.find_all(True, recursive=False)
+    after = children[children.index(label) + 1:] if label in children else children
+    closing = next((c for c in after if is_rule(c)), None)
     for p in paragraphs:
         fresh = p.extract()
-        if anchor is not None:
-            anchor.insert_before(fresh)
+        if closing is not None:
+            closing.insert_before(fresh)
         else:
-            callout.append(fresh)
-    if anchor is not None:
-        anchor.decompose()
+            container.append(fresh)
     heading.replace_with(callout)
     return True
 
@@ -394,6 +410,24 @@ def _captions(soup) -> dict[str, tuple]:
     return found
 
 
+def _caption_like(para, text: str, caption) -> bool:
+    """A rewritten paragraph is the caption only if it opens with the label and
+    the original's separator, stays caption-sized, and sits by its listing or
+    table; prose that starts "Table 2-1 shows…" is not a caption."""
+    original = caption.get_text().strip()
+    match = CAPTION_LABEL.match(ANY_TOKEN.sub("", original))
+    if match is None:
+        return False
+    separator = original[match.end():match.end() + 1]
+    body = CAPTION_LABEL.match(text)
+    if body is None or text[body.end():body.end() + 1] != separator:
+        return False
+    if len(text) > 2 * len(original) + 20:
+        return False
+    neighbours = [para.find_previous_sibling(), para.find_next_sibling()]
+    return any(n is not None and n.name in ("pre", "table") for n in neighbours)
+
+
 def restore_captions(html: str, original_html: str) -> str:
     """Re-apply publisher caption markup the markdown round trip flattened.
 
@@ -412,22 +446,30 @@ def restore_captions(html: str, original_html: str) -> str:
         if para.get("class") or para.find_parent(["figure", "figcaption"]):
             continue
         label = _caption_label(para.get_text(" ", strip=True))
-        entry = originals.pop(label, None) if label else None
-        if entry is None:
+        if not label or label not in originals:
             continue
-        caption, figure = entry
-        replacement = BeautifulSoup(str(caption), "html.parser")
+        caption, figure = originals[label]
+        if not _caption_like(para, ANY_TOKEN.sub("", para.get_text()).strip(), caption):
+            continue
+        replacement = BeautifulSoup(str(caption), "html.parser").find(True)
+        kept = {a.get("id") for a in replacement.find_all(id=True)} | {replacement.get("id")}
+        for anchor in para.find_all("a", id=True):
+            if anchor["id"] not in kept:
+                replacement.insert(0, anchor.extract())
         if figure is not None:
             table = para.find_next_sibling()
-            if table is not None and table.name == "table":
-                wrapper = soup.new_tag("figure", **{
-                    k: v for k, v in figure.attrs.items()
-                })
-                para.insert_before(wrapper)
-                wrapper.append(replacement)
-                wrapper.append(table.extract())
-                para.decompose()
+            if table is None or table.name != "table":
                 continue
+            del originals[label]
+            wrapper = soup.new_tag("figure", **dict(figure.attrs))
+            para.insert_before(wrapper)
+            wrapper.append(replacement)
+            wrapper.append(table.extract())
+            para.decompose()
+            continue
+        if replacement.name == "figcaption":
+            continue
+        del originals[label]
         para.replace_with(replacement)
     return str(soup)
 

@@ -468,3 +468,53 @@ def test_docbook_admonition_shell_is_recognised():
     out = blocks.restyle_notes(rewritten, original)
     assert out.startswith('<div class="warning">')
     assert "Mind the gap." in out and "Careful." not in out
+
+
+BOX_HTML = (
+    '<aside epub:type="sidebar"><div class="top hr"><hr/></div><section class="box">'
+    "<h2>What Is mkfs?</h2><p>Frontend.</p><p>Inspect the files:</p>"
+    "<pre><code>$ ls -l /sbin/mkfs.*</code></pre><p>A symlink.</p>"
+    '<div class="bottom hr"><hr/></div></section></aside>'
+)
+
+
+def test_reboxed_note_keeps_none_of_the_original_body():
+    # How Linux Works ch4: the shell kept its listing, so it showed twice
+    rewritten = "<h2>What Is mkfs?</h2><p>mkfs is a frontend.</p><pre><code>$ ls -l /sbin/mkfs.*</code></pre>"
+    out = blocks.restyle_notes(rewritten, BOX_HTML)
+    assert out.count("<pre>") == 1
+    assert "Frontend." not in out and "A symlink." not in out
+    assert out.index("mkfs is a frontend.") < out.index('<div class="bottom hr">')
+
+
+def test_reboxed_note_takes_no_more_paragraphs_than_it_held():
+    rewritten = convert.markdown_to_html("## Note\n\nThe note, rewritten.\n\nThe chapter goes on.")
+    out = blocks.restyle_notes(rewritten, NOTE_HTML)
+    box_end = out.index("</aside>")
+    assert out.index("The note, rewritten.") < box_end < out.index("The chapter goes on.")
+
+
+def test_prose_opening_with_a_label_is_not_a_caption():
+    rewritten = (
+        "<pre><code>ls</code></pre>"
+        '<p><a id="Page_31"></a>Listing 2-1 shows the listing command in use, and more.</p>'
+    )
+    assert blocks.restore_captions(rewritten, CAPTIONED_HTML) == rewritten
+
+
+def test_caption_away_from_its_listing_is_left_alone():
+    rewritten = "<p>Intro.</p><p>Listing 2-1: Listing files</p><p>More prose.</p>"
+    assert blocks.restore_captions(rewritten, CAPTIONED_HTML) == rewritten
+
+
+def test_restored_caption_keeps_the_paragraphs_other_anchors():
+    rewritten = '<pre><code>ls</code></pre><p><a id="Page_31"></a>Listing 2-1: Listing files</p>'
+    out = blocks.restore_captions(rewritten, CAPTIONED_HTML)
+    assert 'class="CodeListingCaption"' in out and 'id="Page_31"' in out
+    assert out.count('id="listing2-1"') == 1
+
+
+def test_table_title_without_its_table_is_not_a_bare_figcaption():
+    rewritten = "<pre><code>x</code></pre><p>Table 2-1: Special Characters</p>"
+    out = blocks.restore_captions(rewritten, CAPTIONED_HTML)
+    assert "<figcaption" not in out
