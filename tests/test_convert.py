@@ -113,3 +113,38 @@ def test_numbered_definition_terms_stay_terms():
 
 def test_empty_definition_term_does_not_break_conversion():
     assert "Orphan definition." in roundtrip("<dl><dt></dt><dd>Orphan definition.</dd></dl>")
+
+
+def test_pipe_inside_a_table_cell_stays_in_its_cell():
+    # How Linux Works Table 2-1: | `|` | pipe | Command pipes |
+    html = "<table><tr><th>Symbol</th><th>Name</th><th>Use</th></tr><tr><td><code>|</code></td><td>pipe</td><td>Command pipes</td></tr></table>"
+    back = roundtrip(html)
+    assert "<td><code>|</code></td>" in back and "<td>Command pipes</td>" in back
+
+
+def test_split_emphasis_is_merged_not_starred():
+    back = roundtrip("<p>you must <em>co</em><em>mpile</em> code, <strong>a</strong><strong>b</strong></p>")
+    assert "<em>compile</em>" in back and "<strong>ab</strong>" in back and "*" not in back
+
+
+def test_emphasis_touching_punctuation_and_letters_survives():
+    back = roundtrip("<p><strong>Prioritize.</strong>Stop and <em>p &lt; 0.05</em>. Then x<em>.y</em>z.</p>")
+    assert "<strong>Prioritize.</strong>Stop" in back
+    assert "<em>p &lt; 0.05</em>." in back
+    assert "*" not in back
+
+
+def test_prose_opening_with_a_number_is_not_a_list():
+    back = roundtrip("<p>1) No automation at all.</p><p>2021. That was the year.</p>")
+    assert "<ol" not in back and "1) No automation" in back and "2021. That was" in back
+
+
+def test_emphasised_definition_term_keeps_its_emphasis():
+    back = roundtrip("<dl><dt><em>Toil</em></dt><dd><p>Manual work.</p></dd></dl>")
+    assert "<dt><em>Toil</em></dt>" in back
+
+
+def test_emphasis_wrapped_in_a_span_sees_the_text_outside_it():
+    # Statistics Done Wrong: p &lt; 0.05<span class="emphasis"><em>. The ...</em></span>
+    back = roundtrip('<p>at p &lt; 0.05<span class="emphasis"><em>. The probability</em></span> of x</p>')
+    assert "*" not in back and "<em>. The probability</em>" in back
