@@ -96,3 +96,26 @@ def test_pipeline_points_the_toc_at_rewritten_headings(sample_epub, tmp_path):
     assert 'id="sec-first-part"' in ch1.html and 'id="sec-second-part"' in ch1.html
     nav = next(i for i in book.get_items() if isinstance(i, eb.EpubNav))
     assert b"ch1.xhtml#sec-first-part" in nav.content
+
+
+def test_part_entry_that_links_its_first_chapter_keeps_its_chapters():
+    old = [(eb.Section("Part I", href="ch01.xhtml"), [
+        (eb.Section("Chapter 1", href="ch01.xhtml"), [eb.Link("ch01.xhtml#old", "Old", "a")]),
+        eb.Link("ch02.xhtml", "Chapter 2", "b"),
+    ])]
+    new = toc.rebuild_toc(old, "ch01.xhtml", [(1, "sec-a", "A")])
+    part, chapters = new[0]
+    assert part.title == "Part I" and [c.title if not isinstance(c, tuple) else c[0].title for c in chapters] == ["Chapter 1", "Chapter 2"]
+    assert chapters[0][1][0].href == "ch01.xhtml#sec-a"
+
+
+def test_toc_hrefs_resolve_by_path_not_basename():
+    old = [eb.Link("Text/a/ch.xhtml", "A", "x"), eb.Link("Text/b/ch.xhtml", "B", "y")]
+    new = toc.rebuild_toc(old, "Text/b/ch.xhtml", [(1, "sec-z", "Z")])
+    assert new[0] is old[0] and new[1][1][0].href == "Text/b/ch.xhtml#sec-z"
+    assert toc.rebuild_toc([eb.Link("my%20ch.xhtml", "C", "z")], "my ch.xhtml", [(1, "s", "S")])[0][1][0].href == "my%20ch.xhtml#s"
+
+
+def test_toc_labels_drop_footnote_markers():
+    _, headings = toc.number_headings('<h1>T</h1><h2>Consensus<sup><a epub:type="noteref" href="#n1">1</a></sup></h2>')
+    assert headings[0][2] == "Consensus"

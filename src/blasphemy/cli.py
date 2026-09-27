@@ -165,9 +165,10 @@ def main(argv: list[str] | None = None) -> int:
             failed = pipeline.chapter_file(workdir, chapter.index, "failed")
             failed.write_text(body)
             raise ValueError(f"{problem}, see {failed}")
+        record = pipeline.check_record(workdir, chapter.index)
+        record.unlink(missing_ok=True)
         if args.no_check:
             return body
-        record = pipeline.chapter_file(workdir, chapter.index, "check").with_suffix(".json")
         try:
             patched, report_ = check.patch(
                 chapter_md, body, lambda text: call_agent(text, check_prompt)

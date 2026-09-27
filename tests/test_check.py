@@ -25,8 +25,9 @@ def test_split_top_keeps_answer_and_two_sections_and_ignores_code():
 def test_parse_fixes_tolerates_chatter_and_drops_malformed_entries():
     reply = 'Here:\n```json\n{"fixes": [{"sentence": "A.", "replacement": "B."}, {"sentence": 3}]}\n```'
     assert check.parse_fixes(reply) == [{"sentence": "A.", "replacement": "B."}]
-    assert check.parse_fixes("no json at all") == []
-    assert check.parse_fixes("{broken") == []
+    assert check.parse_fixes("no json at all") is None
+    assert check.parse_fixes("{broken") is None
+    assert check.parse_fixes('Braces {like these} first. {"fixes": []} and {after}') == []
 
 
 def test_apply_fixes_restores_the_hedge():
@@ -73,3 +74,36 @@ def test_patch_reassembles_the_body():
     patched, report = check.patch(SOURCE, BODY, lambda text: reply)
     assert "DNS is an application-layer protocol." in patched
     assert patched.endswith("Depth text.") and len(report["applied"]) == 1
+
+
+def test_split_top_skips_a_title_behind_an_anchor():
+    # Pandoc (SRE) bodies open with the chapter anchor, then the title
+    body = "⟦ANCHOR:ch-3⟧\n\n# Chapter 3\n\nAnswer.\n\n## A\n\na\n\n## B\n\nb\n\n## C\n\nc"
+    top, rest = check.split_top(body)
+    assert rest.startswith("## C") and "## B" in top
+
+
+def test_fixes_that_touch_headings_or_tables_are_rejected():
+    top = "# 2 Types\n\n| a | b |\n| --- | --- |\n| x | y |\n\nProse claim here."
+    _, applied, rejected = check.apply_fixes(top, "src", [
+        fix("# 2 Types", "# Types"), fix("| x | y |", "| x | z |"), fix("Prose claim here.", "Line one.\nLine two."),
+    ])
+    assert not applied
+    assert [r["rejected"] for r in rejected] == [
+        "sentence is structure, not prose", "sentence is structure, not prose", "replacement changes structure",
+    ]
+
+
+def test_a_fix_that_breaks_the_body_check_is_dropped_alone():
+    source = " ".join(["w"] * 100)
+    top = "Keep this. Change that."
+    good = fix("Keep this.", "Keep this, usually.")
+    bad = fix("Change that.", "Change ⟦AN that.")
+    patched, applied, rejected = check.apply_fixes(top, source, [good, bad], " ".join(["w"] * 60))
+    assert applied == [good] and patched == "Keep this, usually. Change that."
+    assert rejected[0]["rejected"] == "breaks the body check"
+
+
+def test_unparseable_reply_leaves_the_body_and_says_so():
+    body, report = check.patch(SOURCE, BODY, lambda text: "Sorry, I cannot do that.")
+    assert body == BODY and report["error"] == "unparseable reply"

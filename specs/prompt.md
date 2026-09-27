@@ -51,10 +51,11 @@ the repo.
 - 2026-09-27: opening check added (`check.md`): a fresh call checks the
   answer layer and first two sections against the original and returns
   sentence-level fixes, applied only when their quoted evidence exists in
-  the original. On 18 drafts judged blind with and without it: opening
-  errors 7.6 → 4.7 per 1k words (14/18 better), recurring known errors
-  2.1 → 1.3, recall 35.8 → 36.9 of 40. The body prompt alone had left the
-  opening unchanged (8.1 → 7.7).
+  the original. On 12 correctly split drafts judged blind with and without
+  it: opening errors 6.0 → 3.9 per 1k words (8/12 better). On 6 SRE
+  drafts where a split bug checked the whole chapter, every measure
+  improved 6/6 (recall 31.8 → 35.5 of 40, depth errors 8.0 → 5.7 of 20).
+  The body prompt alone had left the opening unchanged (8.1 → 7.7).
 - 2026-09-26: end-of-chapter apparatus removed (Kai: "i never read those").
   `apparatus.md` and the apparatus pass are gone; `body.md` now says "No
   summaries, recaps or questions" instead of deferring them to a later

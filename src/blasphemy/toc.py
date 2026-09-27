@@ -1,7 +1,10 @@
+import copy
 import posixpath
 import re
+from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
+from ebooklib import ITEM_NAVIGATION
 from ebooklib import epub as eb
 
 from .blocks import is_callout
@@ -34,7 +37,10 @@ def number_headings(html: str) -> tuple[str, list[tuple[int, str, str]]]:
         depth = int(heading.name[1]) - top + 1
         if depth > 2:
             continue
-        text = " ".join(heading.get_text(" ", strip=True).split())
+        label = copy.copy(heading)
+        for marker in label.find_all("sup") + label.find_all("a", attrs={"epub:type": re.compile("noteref")}):
+            marker.decompose()
+        text = " ".join(label.get_text(" ", strip=True).split()) or " ".join(heading.get_text(" ", strip=True).split())
         if not heading.get("id"):
             base = "sec-" + (SLUG.sub("-", text.lower()).strip("-")[:40] or "x")
             candidate, n = base, 2
@@ -68,10 +74,26 @@ def _children(prefix: str, headings) -> list:
     ]
 
 
-def rebuild_toc(entries, file_href: str, headings) -> list:
-    """`book.toc` with the entry for `file_href` holding the rewritten
-    headings; later entries into the same file are dropped."""
-    target = _file(file_href)
+def _into(href: str, base: str, file_href: str) -> bool:
+    path = unquote((href or "").split("#", 1)[0])
+    return bool(path) and posixpath.normpath(posixpath.join(base, path)) == posixpath.normpath(file_href)
+
+
+def _only_into(items, base: str, file_href: str) -> bool:
+    for item in items:
+        node, kids = item if isinstance(item, tuple) else (item, [])
+        if getattr(node, "href", "") and not _into(node.href, base, file_href):
+            return False
+        if not _only_into(kids, base, file_href):
+            return False
+    return True
+
+
+def rebuild_toc(entries, file_href: str, headings, base: str = "") -> list:
+    """`book.toc` with the chapter's own entry holding the rewritten
+    headings. An entry counts as the chapter's only if everything under it
+    points into the chapter file, so a part entry that links its first
+    chapter keeps its other chapters; later entries into the file go."""
     done = False
 
     def walk(items):
@@ -79,14 +101,13 @@ def rebuild_toc(entries, file_href: str, headings) -> list:
         out = []
         for item in items:
             node, kids = item if isinstance(item, tuple) else (item, None)
-            if _file(getattr(node, "href", "") or "") == target:
+            if _into(getattr(node, "href", ""), base, file_href) and _only_into(kids or [], base, file_href):
                 if done:
                     continue
                 done = True
                 prefix = node.href.split("#", 1)[0]
-                section = eb.Section(node.title, href=node.href)
                 children = _children(prefix, headings)
-                out.append((section, children) if children else node)
+                out.append((eb.Section(node.title, href=node.href), children) if children else node)
             elif kids is not None:
                 out.append((node, walk(kids)))
             else:
@@ -97,8 +118,7 @@ def rebuild_toc(entries, file_href: str, headings) -> list:
 
 
 def _resolves(href: str, nav_dir: str, file_href: str) -> bool:
-    path = href.split("#", 1)[0]
-    return bool(path) and posixpath.normpath(posixpath.join(nav_dir, path)) == posixpath.normpath(file_href)
+    return _into(href, nav_dir, file_href)
 
 
 def rebuild_nav(nav: str, nav_name: str, rewritten: dict[str, list]) -> str:
@@ -112,7 +132,12 @@ def rebuild_nav(nav: str, nav_name: str, rewritten: dict[str, list]) -> str:
         if toc is None:
             break
         link = next(
-            (a for a in toc.find_all("a", href=True) if _resolves(a["href"], nav_dir, file_href)),
+            (
+                a for a in toc.find_all("a", href=True)
+                if _resolves(a["href"], nav_dir, file_href)
+                and a.parent.name == "li"
+                and all(_resolves(x["href"], nav_dir, file_href) for x in a.parent.find_all("a", href=True))
+            ),
             None,
         )
         if link is None or link.parent.name != "li":
@@ -159,8 +184,10 @@ def apply(book, rewritten: dict[str, list]) -> None:
     chapters' headings."""
     if not rewritten:
         return
+    ncx = next((i for i in book.get_items() if i.get_type() == ITEM_NAVIGATION), None)
+    base = posixpath.dirname(ncx.get_name()) if ncx is not None else ""
     for file_href, headings in rewritten.items():
-        book.toc = rebuild_toc(book.toc, file_href, headings)
+        book.toc = rebuild_toc(book.toc, file_href, headings, base)
     for item in book.get_items():
         if isinstance(item, eb.EpubNav) and item.content:
             item.content = rebuild_nav(

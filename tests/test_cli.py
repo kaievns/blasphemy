@@ -184,7 +184,7 @@ def check_run(sample_epub, tmp_path, responses, *extra):
     from blasphemy import pipeline
 
     workdir = pipeline.workdir_for(sample_epub)
-    record = pipeline.chapter_file(workdir, 1, "check").with_suffix(".json")
+    record = pipeline.check_record(workdir, 1)
     return code, rewrite, pipeline.chapter_file(workdir, 1), record
 
 
@@ -209,3 +209,9 @@ def test_no_check_skips_the_pass(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     code, rewrite, cached, record = check_run(sample_epub, tmp_path, [OPENING], "--no-check")
     assert code == 0 and rewrite.call_count == 1 and not record.exists()
+
+
+def test_opening_check_outcome_is_in_the_chapter_result(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    check_run(sample_epub, tmp_path, [OPENING, FIX])
+    assert "opening check: 1 fixed" in capsys.readouterr().out

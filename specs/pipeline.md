@@ -190,11 +190,17 @@ Two Claude calls per chapter (a third only when a banned word slips):
    failed check call keeps the unpatched body. `--no-check` skips the pass.
 
    Measured 2026-09-27 on 18 body drafts (6 chapters × 3), each judged
-   blind with and without the check: opening errors 7.6 → 4.7 per 1,000
-   words (14 drafts better, 4 worse; re-judging identical text varies by
-   about 1.0), recurring known errors 2.1 → 1.3, claims kept 35.8 → 36.9
-   of 40. 131 fixes applied, 4 rejected for quoting evidence the original
-   does not contain.
+   blind with and without the check (re-judging identical text varies by
+   about 1.0 error per 1,000 words). On the 12 drafts whose opening was
+   split correctly: opening errors 6.0 → 3.9 per 1,000 words (8 better),
+   everything else flat, as expected for an opening-only pass. On the 6 SRE
+   drafts a split bug (fixed the same day) sent the whole chapter, and
+   everything improved in 6 of 6: opening errors 10.9 → 6.2, claims kept
+   31.8 → 35.5 of 40, hedges dropped 5.8 → 3.3, depth errors 8.0 → 5.7 of
+   20. That points at checking the whole body for the same one call,
+   untested beyond SRE, which also had the worst baseline. 131 fixes
+   applied, 4 rejected for quoting evidence the original does not
+   contain.
 
 The body ships as written after that. The body check requires it to open
 with the chapter title (after leading ⟦ANCHOR⟧ tokens) whenever the source

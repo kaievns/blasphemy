@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,6 +36,22 @@ def workdir_for(epub_path: Path, root: Path | None = None) -> Path:
 
 def chapter_file(workdir: str | Path, index: int, kind: str = "") -> Path:
     return Path(workdir) / f"{index:03d}{'.' + kind if kind else ''}.md"
+
+
+def check_record(workdir: str | Path, index: int) -> Path:
+    return Path(workdir) / f"{index:03d}.check.json"
+
+
+def check_note(record: Path) -> str:
+    if not record.exists():
+        return ""
+    data = json.loads(record.read_text())
+    if "error" in data:
+        return f"opening check failed: {data['error']}"
+    note = f"opening check: {len(data.get('applied', []))} fixed"
+    if data.get("reverted"):
+        note += f", reverted ({data['reverted']})"
+    return note
 
 
 def referenced_anchors(book, chapters: list[epub.Chapter]) -> dict[str, set[str]]:
@@ -190,10 +207,11 @@ def optimise(
                         failed_file.write_text(output_md)
                         raise ValueError(f"{problem}, see {failed_file}")
                     output_file.write_text(output_md)
-                    status, detail = "rewritten", ""
+                    status, detail = "rewritten", check_note(check_record(workdir, chapter.index))
                     slipped = style.banned(source_md, output_md)
                     if slipped:
-                        detail = f"banned words: {', '.join(slipped)}"
+                        note = f"banned words: {', '.join(slipped)}"
+                        detail = f"{detail}; {note}" if detail else note
                 except Exception as error:
                     output_md, status = None, "failed"
                     detail = f"{stale}: {error}" if stale else str(error)
