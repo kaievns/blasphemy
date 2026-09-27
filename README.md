@@ -34,9 +34,9 @@ Flags: [`docs/usage.md`](docs/usage.md).
 
 ## How it works
 
-1. Walk the epub spine. Skip nav, documents under 200 words, and reference
-   pages (index, glossary, bibliography, contents). Longer front matter is
-   rewritten.
+1. Walk the epub spine. Skip nav, documents under 200 words, reference
+   pages (index, glossary, bibliography, contents), front and back matter,
+   part dividers and appendices.
 2. One cheap pass builds a **book primer** (arc, chapter scopes, canonical
    terminology) that is prepended to every chapter call.
 3. Per chapter, one **body pass**: a depth-ordered restructure against a

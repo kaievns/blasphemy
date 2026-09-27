@@ -15,6 +15,19 @@ REFERENCE_TITLES = re.compile(
 )
 REFERENCE_TYPES = re.compile(r"\b(index|glossary|bibliography|toc|landmarks)\b", re.I)
 REFERENCE_CLASSES = REFERENCE_TYPES
+MATTER_TITLES = re.compile(
+    r"^(foreword|preface|acknowledge?ments?|praise\b|reviews for|about the authors?|"
+    r"dedication|colophon|copyright|part\s+[ivxlcdm\d]+\b|appendix\b)",
+    re.I,
+)
+MATTER_TYPES = re.compile(
+    r"\b(frontmatter|backmatter|copyright-page|titlepage|halftitlepage|dedication|"
+    r"epigraph|foreword|preface|acknowledgments|colophon|imprint|contributors|"
+    r"other-credits|errata|endnotes|rearnotes|appendix)\b",
+    re.I,
+)
+MATTER_CLASSES = re.compile(r"^(preface|colophon|dedication|acknowledgments|appendix|copyright)$", re.I)
+CHAPTER_TYPES = re.compile(r"\b(introduction|prologue|chapter|bodymatter)\b", re.I)
 
 
 @dataclass
@@ -27,10 +40,11 @@ class Chapter:
     words: int
     is_nav: bool = False
     is_reference: bool = False  # index, glossary, bibliography, contents
+    is_matter: bool = False  # front/back matter, part dividers, appendices
 
     @property
     def passthrough(self) -> bool:
-        return self.is_nav or self.is_reference
+        return self.is_nav or self.is_reference or self.is_matter
 
 
 def _is_reference(soup: BeautifulSoup, title: str) -> bool:
@@ -50,6 +64,24 @@ def _is_reference(soup: BeautifulSoup, title: str) -> bool:
         if any(REFERENCE_CLASSES.fullmatch(cls) for cls in node["class"]):
             return True
     return False
+
+
+def _is_matter(soup: BeautifulSoup, title: str, words: int) -> bool:
+    """Front and back matter, part dividers and appendices: passed through,
+    because the reader skips them (specs/prompt.md, 2026-08-25)."""
+    title = title.strip()
+    body = soup.body or soup
+    typed = [node["epub:type"] for node in body.find_all(["section", "div"], attrs={"epub:type": True}, limit=3)]
+    if soup.body is not None and soup.body.get("epub:type"):
+        typed.append(soup.body["epub:type"])
+    if re.match(r"introduction\b", title, re.I) or any(CHAPTER_TYPES.search(t) for t in typed):
+        return False
+    if MATTER_TITLES.match(title) or any(MATTER_TYPES.search(t) for t in typed):
+        return True
+    for node in body.find_all(["div", "section"], class_=True, limit=3):
+        if any(MATTER_CLASSES.fullmatch(cls) for cls in node["class"]):
+            return True
+    return words < 1000 and "all rights reserved" in body.get_text(" ").lower()
 
 
 def load(path: str | Path) -> epub.EpubBook:
@@ -88,6 +120,7 @@ def chapters(book: epub.EpubBook) -> list[Chapter]:
                 index, item_id, item.get_name(), title, html, words,
                 is_nav=isinstance(item, epub.EpubNav),
                 is_reference=_is_reference(soup, title),
+                is_matter=_is_matter(soup, title, words),
             )
         )
     return result

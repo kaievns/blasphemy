@@ -145,8 +145,9 @@ the repo.
   J locked as production body prompt. Full-library regeneration with the
   production pipeline. Kai asked for front matter
   (prefaces/forewords/acknowledgments) to be skipped ("I never read
-  those"). No skip rule exists in code, only `--skip`, and the current
-  samples rewrite 22 non-chapter documents.
+  those"). No skip rule existed in code until 2026-09-27 (only `--skip`),
+  so the 2026-09-16 samples rewrote 22 non-chapter documents; see
+  `specs/pipeline.md#reference-documents` for the rule now.
 - 2026-08-25: Kai approved J (linear, comprehensible, apparatus on point);
   asked for more even density/cadence — no mid-flight filler triage. K =
   J + uniform-density rule (every sentence carries load, one-clause

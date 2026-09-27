@@ -30,11 +30,9 @@ information.
 ## Flow
 
 1. Load epub, walk spine items that are documents, in spine order.
-2. Pass through unchanged: nav documents, reference documents (below),
-   `--skip`/`--only` exclusions, and documents under `--min-words` (default
-   200) words (covers, title pages, short part dividers). Front matter over
-   the threshold (copyright pages, forewords, prefaces, acknowledgments) is
-   rewritten.
+2. Pass through unchanged: nav documents, reference documents and front or
+   back matter (below), `--skip`/`--only` exclusions, and documents under
+   `--min-words` (default 200) words (covers, title pages).
 3. Convert chapter HTML → markdown with fragile markup tokenised, run the
    body pass (see Rewrite architecture), put the chapter title first.
 4. Convert rewritten markdown → HTML, replace the chapter content in the book.
@@ -154,12 +152,21 @@ styled title would take a note's "Note" heading as the title.
 
 Indexes, glossaries, bibliographies and contents pages pass through
 untouched (`Chapter.is_reference`, detected by title, `epub:type`, or a
-wrapper `div.index|toc`). The title must match whole, so a prefixed title
-such as "Appendix A. Notes" is rewritten. They are lookup structures, not arguments: a
+wrapper `div.index|toc`). They are lookup structures, not arguments: a
 rewrite destroys them (Statistics' index came back as 23 code blocks with an
 "Orient" paragraph) and costs a chapter's worth of credits doing it.
 Structural ratios are deliberately not used — Rust's Introduction has more
 list items than paragraphs and must still be rewritten.
+
+Front and back matter, part dividers and appendices pass through too
+(`Chapter.is_matter`), because Kai skips them: `epub:type` frontmatter,
+backmatter, copyright-page, preface, foreword, appendix, endnotes and
+similar (No Starch); classes `preface`, `colophon`, `appendix` (DocBook);
+titles such as Foreword, Preface, Acknowledgments, "Praise for", "Part II -
+…", "Appendix A - …" (Pandoc has nothing else); and short pages reading "All
+rights reserved". An Introduction, or anything typed chapter or bodymatter,
+is always rewritten. On the 4 sample books this passes through the 22
+non-chapters the 2026-09-25 review found and none of the 76 chapters.
 
 ## Rewrite architecture (hologram body since 2026-09-15, one pass since 2026-09-26)
 

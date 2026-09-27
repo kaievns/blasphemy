@@ -149,3 +149,37 @@ def test_ordinary_chapter_and_appendix_are_not_reference(tmp_path):
         "e",
     )
     assert not chapter.is_reference and not intro.is_reference
+
+
+def _page(tmp_path, name, body):
+    return _doc(tmp_path, f"<html><body>{body}</body></html>", name)
+
+
+def test_front_and_back_matter_detected_by_type_class_or_title(tmp_path):
+    # No Starch marks epub:type, DocBook uses classes, Pandoc has only titles
+    cases = {
+        "ns_foreword": '<section epub:type="frontmatter"><h1>Foreword</h1><p>x</p></section>',
+        "ns_copy": '<section epub:type="frontmatter copyright-page"><p>x</p></section>',
+        "db_preface": '<div class="preface"><h1>Praise for the book</h1><p>x</p></div>',
+        "db_colophon": '<div class="colophon"><p>x</p></div>',
+        "db_appendix": '<div class="appendix"><h1>Appendix A. Notes</h1><p>x</p></div>',
+        "pd_part": "<h1>Part II - Principles</h1><p>x</p>",
+        "pd_appendix": "<h1>Appendix D - Example Postmortem</h1><p>x</p>",
+        "rights": "<p>Copyright 2021. All rights reserved. ISBN 978</p>",
+    }
+    for name, body in cases.items():
+        chapter = _page(tmp_path, name, body)
+        assert chapter.is_matter and chapter.passthrough, name
+
+
+def test_introductions_and_chapters_are_not_matter(tmp_path):
+    cases = {
+        "ns_intro": '<section epub:type="frontmatter introduction"><h1>Introduction</h1><p>x</p></section>',
+        "intro": '<div class="preface"><h1>Introduction</h1><p>x</p></div>',
+        "chapter_intro": "<h1>Chapter 1 - Introduction</h1><p>x</p>",
+        "participation": "<h1>Participation and Its Limits</h1><p>x</p>",
+        "parting": "<h1>Parting Words</h1><p>x</p>",
+        "chapter": '<section epub:type="bodymatter chapter"><h1>1 Foundations</h1><p>x</p></section>',
+    }
+    for name, body in cases.items():
+        assert not _page(tmp_path, name, body).is_matter, name
