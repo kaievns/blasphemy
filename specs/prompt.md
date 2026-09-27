@@ -48,6 +48,25 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-27: options P and P2 — fractal structure, from Kai's read of O:
+  the answer-first opening "feels rushed", bottom-line facts without
+  reasoning, "like an answer from googling", no author texture; wanted
+  instead the same shape at every level (problem, reasoned answer, detail;
+  each section nesting it), reasoning at every level, no duplication
+  between levels, knowledge building into context. P: the chapter opens
+  with the author's problem, then the answer with the author's reasons,
+  each pointing to the section that develops it; each section opens with
+  the question the level above left open; asides last; questions allowed
+  only as the problem a level answers. P2 = P plus explicit "never open a
+  section by restating the level above" and no section numbers or
+  examples at the top. Chapter 1 of 4 books, judged blind against Kai's
+  stated criteria (1-5 each, summed over 4 books): P beat O in 4 of 4 —
+  problem-first 20 vs 7, texture 17 vs 12, not rushed 16 vs 10, context
+  before detail 16 vs 11, opening errors 9 vs 13 — at 79-85% length vs
+  72-79%. P vs P2 split 2-2 with near-equal totals; restatements 27 vs 26,
+  so the no-repeat wording does not stop repetition (O had 52 in 8
+  audited chapters). Prompts `experiments/prompts/body-p.md`, `body-p2.md`;
+  samples `experiments/ch1-2026-09-27-P*/`. Awaiting Kai's read.
 - 2026-09-27: opening check added (`check.md`): a fresh call checks the
   answer layer and first two sections against the original and returns
   sentence-level fixes, applied only when their quoted evidence exists in
