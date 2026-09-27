@@ -1,8 +1,9 @@
 # blasphemy
 
 Rewrites an epub chapter by chapter with an agentic CLI, then reassembles an
-optimised epub: each chapter restructured by depth (the answer, then the
-shape of the problem, then the detail) with facts, terminology and code
+optimised epub: each chapter restructured as a fractal (the author's
+problem, the reasoned answer, then sections that each take up a question
+the level above left open, asides last) with facts, terminology and code
 preserved.
 
 Built for one reader profile — Asperger-type autistic + medicated ADHD, senior

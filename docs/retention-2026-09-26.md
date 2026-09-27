@@ -1,5 +1,9 @@
 # Comprehension and retention mechanics, 2026-09-26
 
+**Status, 2026-09-27:** the body structure is now the fractal option P
+(`specs/prompt.md`); rows M1–M3 and the answer-first discussion evaluate
+the retired option O opening.
+
 **The body rewrite mostly follows its own rules. The end-of-chapter
 retention layer was built so it could barely work, and you never read it, so
 it was removed the same day.** It gave each chapter one retrieval event with

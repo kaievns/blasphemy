@@ -11,7 +11,7 @@ TOP_SECTIONS = 2
 
 
 def split_top(body: str) -> tuple[str, str]:
-    """The answer layer plus the first TOP_SECTIONS sections, and the rest."""
+    """The chapter-level opening plus the first TOP_SECTIONS sections, and the rest."""
     lines = body.split("\n")
     opening = pipeline.opening_line(body)
     title_at = next(

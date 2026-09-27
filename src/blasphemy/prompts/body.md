@@ -6,65 +6,78 @@ and being told something twice.
 
 # The objective
 
-Restructure the chapter into a **hologram**: ordered by depth, not by the
-author's presentation. The reader can stop at any point and still hold the
-whole picture — stopping early loses resolution, never the shape. Target
-55-70% of the input length; comprehension outranks the target, padding
-never qualifies.
+Restructure the chapter as a **fractal**: the same shape at every level,
+each level zooming in on the one above. Every level is a problem and its
+reasoned answer; each deeper level answers a question the level above
+leaves open, with more detail. A reader who stops at any level holds the
+whole argument at that resolution — its reasons, not just its
+conclusions. Target 55-70% of the input length; comprehension outranks
+the target, padding never qualifies.
 
-This is a full restructure. The author built the chapter for a reader who
-did not know the conclusion yet; you write for one who wants the
-conclusion first and then the reasons at increasing depth. Unpack the
-author's interleaved topics and repack them by the structure of the
-problem. The author's section order and section boundaries do not
-survive; the author's terms, claims, specifics, code and figures do.
+The knowledge must build into context: the reader always meets the frame
+first and each detail inside the frame it belongs to, never a pile of
+details to assemble into meaning afterwards.
 
-# The layers — by depth, as one continuous story
+# The shape, at every level
 
-The chapter is one narrative that keeps zooming in. Every layer is prose.
-Every layer **continues** the one above: it picks up a thread the layer
-above left closed and opens it. It never restarts, never re-summarises,
-never begins with a sentence the reader has already read in other words.
+**Chapter level** — under the chapter title, no heading of its own:
+1. **The problem.** One paragraph: the question or problem the chapter
+   exists to answer, in the author's framing and voice — what goes wrong,
+   what is puzzling, why it matters. Use the author's own motivating
+   example or tension when there is one; never a generic "In this chapter"
+   opener.
+2. **The answer, with its reasoning.** One to three paragraphs of prose
+   that answer the problem the way the author argues it: the claim, and
+   the chain of reasons it rests on, each reason at low resolution. Every
+   reason names the section that develops it, by that section's heading
+   (for example: "…because the kernel owns the device, which *Who Owns the
+   Hardware* takes apart"). This is an argument, not a list of facts: a
+   reader who stops here can explain why the answer holds.
 
-1. **The answer.** Under the chapter title, no heading of its own: 1-3
-   paragraphs stating what the chapter concludes and why it holds. A
-   reader who stops here knows what is true and what it rests on.
+**Section level** — one `##` section per reason or part of the answer, in
+the order that puts each section's prerequisites before it:
+1. Open with the problem this section answers: the question the level
+   above left open ("but why does the kernel have to own it?"), stated as
+   a problem in a sentence, not as a heading echo. A literal question
+   mark is optional; do not open every section the same way.
+2. Answer it with its own reasons, one level deeper than the chapter
+   level said it.
+3. Then the detail that carries those reasons: mechanism, worked example,
+   code, figure, edge cases, exceptions, exact numbers and limits.
+4. A section with genuine subparts nests the same shape in `###`
+   subsections: sub-problem, reasoned answer, detail.
 
-2. **The shape of the problem.** One section, sometimes two, with a
-   heading that names the structure in the chapter's own terms (never
-   "Overview", "Reasoning", "Structure"). Narrative, not bullets: what the
-   parts are, how they relate, the mechanism that makes the answer true,
-   the tension or trade-off the chapter turns on. This is where the
-   internal logic lives — the reader who stops here can reconstruct the
-   argument, not just repeat it. Rule-shaped content may appear as a
-   condition→outcome table where a table genuinely is the shape; lists
-   only for items that are truly parallel and have no relations to
-   narrate.
+Headings are real and contextual: each states that section's point in
+the chapter's own terms (never "Overview", "Reasoning", "Details").
 
-3. **The depths.** One section per part of the shape, each with a real,
-   contextual heading that states that part's point. Each continues its
-   thread from the shape layer: mechanism, worked example, code, figure,
-   edge cases, exceptions, exact numbers and limits. Use `###` inside a
-   part when it has genuine subparts. Order the parts so that a part's
-   prerequisites come before it.
+**Asides** — optional, last, headed contextually (e.g. "Two things the
+author notes in passing"): tangents, history, jokes and side facts that
+carry no weight in the argument. Omit when empty.
 
-4. **Asides.** Optional, last, headed contextually (e.g. "Two things the
-   author notes in passing"): tangents, history, jokes and side facts the
-   author included that carry no weight in the argument. Omit when empty.
+# Each level adds, never repeats
 
-# Additive, or it is noise
-
-This reader retains exact wording. A claim met twice in different words
-reads as two claims or as "I already read this" — and they will skip
-ahead and lose the thread. So:
-- every fact, number, example and explanation appears **once**, in the
-  shallowest layer where it is needed to hold the picture
-- a deeper layer refers back by the same term and then adds — it never
-  re-explains, never paraphrases, never opens with a recap
+This reader retains exact wording and skips anything they have already
+read. So:
+- a deeper level never restates the level above; it starts from the
+  question the level above left open and goes further. The level above
+  says what holds and why in a clause; the level below says how, with
+  the evidence, the mechanism and the exceptions
+- every fact, number, example and explanation appears once, at the
+  shallowest level that needs it
 - no transitional sentences that announce what comes next or restate
-  what came before
+  what came before; no closing summaries
 - the test for every sentence: would a reader who has read everything
-  above it learn something from it? If not, delete it.
+  above it learn something from it? If not, delete it
+
+# Reasoning is the author's
+
+Reasoning at every level must be the author's reasoning, in the author's
+texture. Every "because" at every level is one the author gives; when the
+author states a conclusion without a reason, state it as the author's
+claim and do not invent the reason. The top levels are the author's
+argument told at lower resolution, not a neutral summary: keep the
+author's examples, the vivid verb, the punchline, the way they pose the
+problem.
 
 # Information policy
 
@@ -74,8 +87,8 @@ ahead and lose the thread. So:
   asides — may be dropped when they serve nothing.
 - Code blocks verbatim. Technical terms verbatim — never substitute a
   simpler word for a term. One concept = one term, always.
-- Figures, tables and code sit at the depth where they are needed; a
-  figure that *is* the shape of the problem belongs in the shape layer.
+- Figures, tables and code sit at the level where they are needed; a
+  figure that *is* the structure of the answer belongs at the top.
 
 # Register — expert to expert
 
@@ -117,5 +130,6 @@ new structure. A ⟦TITLE-…⟧ token *is* the chapter title: keep it as the
 first line, alone, and add no heading of your own above or below it.
 Keep markdown images (`![...](...)`) and intra-book links.
 Non-prose reference material (tables, glossaries, notes) is lightly
-cleaned, never rewritten. No summaries, recaps or questions. Output only
-the rewritten chapter as markdown, no preamble.
+cleaned, never rewritten. No summaries, recaps, or quiz questions — a
+question is only ever the problem a level answers. Output only the
+rewritten chapter as markdown, no preamble.

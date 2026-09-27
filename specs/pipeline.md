@@ -168,19 +168,25 @@ rights reserved". An Introduction, or anything typed chapter or bodymatter,
 is always rewritten. On the 4 sample books this passes through the 22
 non-chapters the 2026-09-25 review found and none of the 76 chapters.
 
-## Rewrite architecture (hologram body since 2026-09-15, opening check since 2026-09-27)
+## Rewrite architecture (fractal body and opening check since 2026-09-27)
 
 Two Claude calls per chapter (a third only when a banned word slips):
 
-1. **Body pass** (`prompts/body.md`): the hologram restructure (the answer
-   under the title, the shape of the problem as narrative, depth sections
-   with contextual headings, optional asides) in the expert register.
+1. **Body pass** (`prompts/body.md`, option P): the fractal restructure —
+   the same shape at every level. Under the title, the problem the chapter
+   answers in the author's framing, then the answer with the author's
+   reasons, each pointing to the section that develops it; each section
+   opens with the question the level above left open, answers it one
+   level deeper, then gives the detail, nesting the same shape in `###`
+   subsections; asides last. Expert register, the author's texture and
+   reasoning at every level.
    A 55–70% length contract with a comprehension override is appended to
    the user message (`cli.py`) and never measured. Framing matters more than
    numbers: a comprehension-first framing ignores numeric targets entirely
    (H/I experiments).
-2. **Opening check** (`prompts/check.md`, `check.py`): the answer layer and
-   the first two sections, the part a reader may stop at, are checked
+2. **Opening check** (`prompts/check.md`, `check.py`): the chapter-level
+   opening and the first two sections, the part a reader may stop at, are
+   checked
    sentence by sentence against the original in a fresh call. The reply is
    JSON fixes: the exact sentence, the original's supporting passage, and a
    replacement that says only what the original supports. A fix is applied
@@ -281,8 +287,9 @@ valid siblings.
    are restored as `<a id>` elements. A dropped token falls back to an anchor
    at chapter top (link lands at chapter start, never breaks) and is reported
    as a warning in the result detail.
-2. **Style contract** — the body prompt fixes one depth order for every
-   chapter (answer → shape → depths → optional asides). See
+2. **Style contract** — the body prompt fixes one shape for every chapter
+   and every level within it (problem → reasoned answer → detail, asides
+   last). See
    `specs/reader-profile.md` for the evidence base.
 3. **Book primer** — one Claude call per book (prompt: `prompts/primer.md`,
    input: chapter titles + openings) produces arc + per-chapter scope +

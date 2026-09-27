@@ -25,19 +25,19 @@
   restated points.
 - Keep: every fact, number, name, argument step, code block, and any example
   that carries the point (condensed if long).
-- Structure (hologram, approved 2026-09-15): ordered by depth, not by the
-  author's presentation — the answer under the title, the shape of the
-  problem as narrative, then depth sections with contextual headings, then
-  asides. Every layer continues the one above and adds; nothing is said
-  twice. The author's section order and boundaries do not survive; terms,
-  claims, specifics, code and figures do. Measured output differs on two
-  points: the depths keep the author's order (Kendall tau median 0.995),
-  and the 8 audited chapters hold 52 restatements
-  (`docs/review-2026-09-25.md`).
+- Structure (fractal, option P, approved 2026-09-27): the same shape at
+  every level, each zooming in on the one above — the author's problem,
+  the answer with the author's reasons (each pointing to the section that
+  develops it), then sections that each open with the question the level
+  above left open, answer it one level deeper and give the detail, nesting
+  the same shape; asides last. Reasoning at every level is the author's;
+  knowledge builds into context. Each level is meant to add, never repeat;
+  measured output still restates (24 restatements over 4 chapter 1s), and
+  prompt wording alone did not reduce it (P2).
 
 ## Prompt files
 
-Live in `src/blasphemy/prompts/`: `body.md` (hologram body pass, option O),
+Live in `src/blasphemy/prompts/`: `body.md` (fractal body pass, option P),
 `check.md` (opening check) and `primer.md`. Override the body
 prompt with `--prompt <path>` for experiments.
 
@@ -66,7 +66,9 @@ the repo.
   72-79%. P vs P2 split 2-2 with near-equal totals; restatements 27 vs 26,
   so the no-repeat wording does not stop repetition (O had 52 in 8
   audited chapters). Prompts `experiments/prompts/body-p.md`, `body-p2.md`;
-  samples `experiments/ch1-2026-09-27-P*/`. Awaiting Kai's read.
+  samples `experiments/ch1-2026-09-27-P*/`.
+- 2026-09-27: Kai approved P ("i like the writeups it produces"); promoted
+  to production `body.md`. O's answer-first opening is retired.
 - 2026-09-27: opening check added (`check.md`): a fresh call checks the
   answer layer and first two sections against the original and returns
   sentence-level fixes, applied only when their quoted evidence exists in
