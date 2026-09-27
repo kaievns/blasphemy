@@ -48,6 +48,25 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-27: effort A/B on Opus 5.5, `high` vs `xhigh` vs `max`, same
+  setup and chapters. `high` and `xhigh` ran 6 chapters × 3 draws; `max`
+  ran only the 2 Statistics Done Wrong chapters × 3, because a 4.5k-word
+  body took 51-105 min, split across 2-4 messages by the output limit, past the
+  default 2400 s timeout. Judge noise, from re-judging the 18 `high`
+  drafts: ±0.22 claims kept, ±1.17 top-layer errors per 1k words.
+  Fidelity: `xhigh` equals `high` within that noise (claims kept 39.7 vs
+  39.5, top-layer errors 2.0 vs 2.0 per 1k, deeper-sample errors 0.9 vs
+  1.5 of 20). Structure, blind, each set judged in two label orders:
+  `xhigh` ranked above `high` in 23 of 36 judgments, 32 of them rated a
+  "slight" difference; per chapter-draw 10 `xhigh`, 5 `high`, 3 split
+  (sign test p = 0.30); ahead on reasoning at the top (154 vs 134),
+  behind on readability (130 vs 140). `max` ranked last in 10 of 12
+  three-way judgments: texture 36 vs 49, not rushed 37 vs 57 — shorter
+  (82% vs 90-93% of source), clipped, jokes and asides cut; claims kept
+  39.3 vs 39.8 on the same chapters. Cost per chapter (reported): `high`
+  $1.26, `xhigh` $2.35 (2.5× the time), `max` $11.60 on the Stats
+  chapters vs $0.98 at `high` (22× the time). `high` stays the default.
+  Samples `experiments/effort-2026-09-27/`.
 - 2026-09-27: model A/B, Fable (no effort flag) vs Opus 5.5 at `high`, on
   the production setup (P body prompt + opening check), 6 chapters × 3
   draws. Fidelity, judged blind against the frozen 40-claim inventories

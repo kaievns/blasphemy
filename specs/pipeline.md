@@ -25,8 +25,11 @@ information.
   2026-09-27 at Kai's request; pinned ids so the default does not drift
   when an alias moves. A blind A/B on the production setup preferred it
   to Fable (the default from 2026-08-25) on fidelity and structure at a
-  quarter of the cost (`prompt.md`, iteration log, 2026-09-27). The hedge
-  and opening-check A/Bs ran on Fable and were not repeated on Opus.
+  quarter of the cost (`prompt.md`, iteration log, 2026-09-27). `xhigh`
+  matched `high` on fidelity with a slight, not significant, structural
+  edge at 1.9× the cost; `max` ranked last and outruns the default
+  timeout (same log). The hedge and opening-check A/Bs ran on Fable and
+  were not repeated on Opus.
   Configurable via `--model` / `--effort`.
 - **Book types:** non-fiction + technical. Rewriting can be aggressive.
 
