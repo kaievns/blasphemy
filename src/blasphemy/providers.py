@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import sqlite3
 import subprocess
 import time
@@ -254,6 +255,28 @@ def build_call(
     return cmd, payload
 
 
+def run_process(
+    cmd: list[str], input: str | None, timeout: int, env: dict | None = None
+) -> subprocess.CompletedProcess:
+    # the launcher's child is the real CLI; see specs/pipeline.md, Failure handling
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = proc.communicate(input, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+
+
 def rewrite(
     user_text: str,
     system_prompt: str,
@@ -271,14 +294,7 @@ def rewrite(
         if attempt:
             time.sleep(backoff * attempt)
         try:
-            proc = subprocess.run(
-                cmd,
-                input=stdin,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                env=env,
-            )
+            proc = run_process(cmd, input=stdin, timeout=timeout, env=env)
         except FileNotFoundError:
             raise ProviderError(f"{cmd[0]} not found on PATH") from None
         except subprocess.TimeoutExpired:

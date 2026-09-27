@@ -66,7 +66,10 @@ cache hits included, so it can describe input the cached output never saw.
 
 - Claude call retried with backoff; after exhausting retries the chapter is
   marked `failed` and the original content is kept — a failed chapter never
-  blocks the book.
+  blocks the book. A timed-out call is killed with its whole process group
+  (`providers.run_process`): the `claude` launcher starts the real binary as
+  a child, and killing only the launcher left that call running beside the
+  retry.
 - Body check before caching (`pipeline.body_problem`): the body fails when
   it does not open with the chapter title (leading ⟦ANCHOR⟧ lines aside),
   ends inside an unclosed ⟦token⟧, ends on a bare heading, or is under 35%

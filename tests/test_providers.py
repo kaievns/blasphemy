@@ -2,6 +2,7 @@ import json
 import os
 import sqlite3
 import subprocess
+import time
 from unittest.mock import patch
 
 import pytest
@@ -106,7 +107,7 @@ def test_strip_chrome_drops_reply_marker_but_keeps_blockquotes():
 def test_kiro_output_is_sanitised_and_env_applied(monkeypatch):
     monkeypatch.setattr(providers, "KIRO_STORE_PATHS", ("/nonexistent",))
     noisy = completed(stdout="\x1b[32mclean\x1b[0m\n▸ Credits: 0.4 • Time: 3s\n")
-    with patch("subprocess.run", return_value=noisy) as run:
+    with patch("blasphemy.providers.run_process", return_value=noisy) as run:
         assert providers.rewrite(
             "chapter", "SYSTEM", provider=providers.KIRO
         ) == "clean"
@@ -151,7 +152,7 @@ def test_rewrite_prefers_fetched_response_over_rendered_stdout():
 
     provider = providers.Provider(name="x", binary="x", default_model="", fetch=fetch)
     mangled = completed(stdout="raw with backticks and\nfences")
-    with patch("subprocess.run", return_value=mangled):
+    with patch("blasphemy.providers.run_process", return_value=mangled):
         out = providers.rewrite("CHAPTER", "SYSTEM", provider=provider)
     assert out == "raw with `backticks` and\n\n```\nfences\n```"
     # fetch is matched against the full payload the model actually received
@@ -162,7 +163,7 @@ def test_rewrite_falls_back_to_stdout_when_fetch_misses():
     provider = providers.Provider(
         name="x", binary="x", default_model="", fetch=lambda payload: None
     )
-    with patch("subprocess.run", return_value=completed(stdout="rendered\n")):
+    with patch("blasphemy.providers.run_process", return_value=completed(stdout="rendered\n")):
         assert providers.rewrite("CHAPTER", "SYSTEM", provider=provider) == "rendered"
 
 
@@ -171,7 +172,7 @@ def test_kiro_provider_wires_store_fetch():
 
 
 def test_claude_run_inherits_env_unchanged():
-    with patch("subprocess.run", return_value=completed()) as run:
+    with patch("blasphemy.providers.run_process", return_value=completed()) as run:
         providers.rewrite("chapter", "SYSTEM")
     assert run.call_args.kwargs["env"] is None
 
@@ -226,7 +227,7 @@ def test_claude_is_the_default_provider():
 
 
 def test_rewrite_success_passes_stdin():
-    with patch("subprocess.run", return_value=completed(stdout="out\n")) as run:
+    with patch("blasphemy.providers.run_process", return_value=completed(stdout="out\n")) as run:
         assert providers.rewrite("chapter", "SYSTEM") == "out"
     assert run.call_args.kwargs["input"] == "chapter"
     assert run.call_args.kwargs["timeout"] == 1200
@@ -234,14 +235,14 @@ def test_rewrite_success_passes_stdin():
 
 def test_rewrite_retries_then_succeeds():
     responses = [completed(1, "", "boom"), completed(0, "out")]
-    with patch("subprocess.run", side_effect=responses), patch("time.sleep") as sleep:
+    with patch("blasphemy.providers.run_process", side_effect=responses), patch("time.sleep") as sleep:
         assert providers.rewrite("chapter", "SYSTEM", backoff=1) == "out"
     sleep.assert_called_once()
 
 
 def test_rewrite_error_names_provider_and_surfaces_stdout():
     with patch(
-        "subprocess.run", return_value=completed(1, "session limit reached", "")
+        "blasphemy.providers.run_process", return_value=completed(1, "session limit reached", "")
     ), patch("time.sleep"):
         with pytest.raises(providers.ProviderError, match="kiro failed"):
             providers.rewrite(
@@ -251,14 +252,14 @@ def test_rewrite_error_names_provider_and_surfaces_stdout():
 
 def test_rewrite_timeout_retried_then_raises():
     with patch(
-        "subprocess.run", side_effect=subprocess.TimeoutExpired([], 5)
+        "blasphemy.providers.run_process", side_effect=subprocess.TimeoutExpired([], 5)
     ), patch("time.sleep"):
         with pytest.raises(providers.ProviderError, match="timed out"):
             providers.rewrite("chapter", "SYSTEM", retries=1)
 
 
 def test_rewrite_missing_binary_is_clear():
-    with patch("subprocess.run", side_effect=FileNotFoundError):
+    with patch("blasphemy.providers.run_process", side_effect=FileNotFoundError):
         with pytest.raises(providers.ProviderError, match="not found on PATH"):
             providers.rewrite("chapter", "SYSTEM")
 
@@ -315,5 +316,27 @@ def test_claude_reply_passes_plain_text_through():
 
 def test_rewrite_returns_the_joined_stream_reply():
     out = stream("# T\n\nfirst half, ", "second half.")
-    with patch("subprocess.run", return_value=completed(stdout=out)):
+    with patch("blasphemy.providers.run_process", return_value=completed(stdout=out)):
         assert providers.rewrite("chapter", "SYSTEM") == "# T\n\nfirst half, second half."
+
+
+def test_run_process_passes_stdin_and_captures_output():
+    proc = providers.run_process(["cat"], input="chapter", timeout=10)
+    assert (proc.returncode, proc.stdout) == (0, "chapter")
+
+
+def test_run_process_timeout_kills_the_launched_binary_too(tmp_path):
+    launcher = tmp_path / "launcher"
+    launcher.write_text('#!/bin/sh\nsleep 60 &\necho $! > "$1"\nwait\n')
+    launcher.chmod(0o755)
+    pidfile = tmp_path / "pid"
+    with pytest.raises(subprocess.TimeoutExpired):
+        providers.run_process([str(launcher), str(pidfile)], input=None, timeout=1)
+    child = int(pidfile.read_text())
+    for _ in range(50):
+        try:
+            os.kill(child, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(0.1)
+    pytest.fail("the launched binary outlived the timeout")
