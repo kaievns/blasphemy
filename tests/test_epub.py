@@ -183,3 +183,22 @@ def test_introductions_and_chapters_are_not_matter(tmp_path):
     }
     for name, body in cases.items():
         assert not _page(tmp_path, name, body).is_matter, name
+
+
+def test_package_prefixes_survive_load_and_save(tmp_path):
+    book = eb.EpubBook()
+    book.set_identifier("p-id")
+    book.set_title("P")
+    book.set_language("en")
+    book.add_prefix("ibooks", "http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/")
+    ch = eb.EpubHtml(title="c", file_name="c.xhtml", uid="c")
+    ch.set_content(b"<html><body><h1>C</h1><p>x</p></body></html>")
+    book.add_item(ch)
+    book.spine = [ch]
+    book.add_item(eb.EpubNcx())
+    book.add_item(eb.EpubNav())
+    first = tmp_path / "first.epub"
+    epub.save(book, first)
+    again = tmp_path / "again.epub"
+    epub.save(epub.load(first), again)
+    assert ("ibooks", "http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/") in epub.package_prefixes(again)

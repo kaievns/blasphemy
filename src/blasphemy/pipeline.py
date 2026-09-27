@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import blocks, convert, cover, epub, style
+from . import blocks, convert, cover, epub, style, toc
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
@@ -136,6 +136,7 @@ def optimise(
     all_chapters = epub.chapters(book)
     refs = referenced_anchors(book, all_chapters)
     results = []
+    renumbered: dict[str, list] = {}
     for chapter in all_chapters:
         starting(chapter)
         # blocks first: an anchor inside a protected figure travels with it,
@@ -222,9 +223,12 @@ def optimise(
                     html = blocks.carry_lead_class(html, chapter.html)
                     html = blocks.restore_captions(html, chapter.html)
                     html = blocks.restyle_notes(html, chapter.html)
+                    html = blocks.lift_blocks(html)
                     # tokens from a cache written by an older pipeline are
                     # unrestorable here; never ship them to the reader
                     html = blocks.strip_tokens(html)
+                    html, headings = toc.number_headings(html)
+                    renumbered[chapter.href] = headings
                     epub.replace_content(book, chapter.item_id, html)
             result = Result(
                 chapter.index, chapter.item_id, chapter.title, status,
@@ -235,6 +239,7 @@ def optimise(
         results.append(result)
         progress(result)
 
+    toc.apply(book, renumbered)
     if title_suffix:
         epub.retitle(book, title_suffix)
     if badge_text:

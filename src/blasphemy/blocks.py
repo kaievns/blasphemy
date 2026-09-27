@@ -66,7 +66,7 @@ def _token_re(kind: str, block_id: int) -> re.Pattern:
     return re.compile(rf"⟦{kind}-{block_id}(?:[^0-9⟦⟧][^⟦⟧]*)?⟧")
 
 
-def _is_callout(node) -> bool:
+def is_callout(node) -> bool:
     if node.name == "aside" and "sidebar" in (node.get("epub:type") or ""):
         return True
     if node.name in ("div", "section", "aside"):
@@ -115,7 +115,7 @@ def _chapter_title(soup):
     heading = next(
         (
             h for h in soup.find_all(HEADINGS)
-            if not any(_is_callout(p) for p in h.find_parents(["aside", "div", "section"]))
+            if not any(is_callout(p) for p in h.find_parents(["aside", "div", "section"]))
         ),
         None,
     )  # a note's own "Note" heading is not the chapter title
@@ -289,7 +289,7 @@ def restyle_notes(html: str, original_html: str) -> str:
     """
     shells = {}
     for node in BeautifulSoup(original_html, "html.parser").find_all(["aside", "div", "section"]):
-        if _is_callout(node) and not node.find_parent(["aside"]):
+        if is_callout(node) and not node.find_parent(["aside"]):
             label = _callout_label(node).casefold()
             if label:
                 shells.setdefault(label, str(node))
@@ -302,7 +302,7 @@ def restyle_notes(html: str, original_html: str) -> str:
         if shell is None:
             continue
         parent = heading.find_parent(["aside", "div", "section"])
-        if parent is not None and _is_callout(parent):
+        if parent is not None and is_callout(parent):
             continue  # already boxed
         changed = _dress(heading, shell) or changed
     return str(soup) if changed else html
@@ -346,20 +346,39 @@ def _drop_duplicate_captions(html: str) -> str:
     return str(soup)
 
 
-def _unwrap_block_paragraphs(html: str) -> str:
-    # adjacent tokens (a title then its opener art) share one markdown
-    # paragraph, so a <p> may hold several restored blocks and nothing else
+def lift_blocks(html: str) -> str:
+    """A block element inside <p> is invalid XHTML; markdown wraps restored
+    blocks and their neighbouring anchor or text in one paragraph, so lift
+    each block out and keep what surrounds it as paragraphs of its own."""
     soup = BeautifulSoup(html, "html.parser")
     for para in soup.find_all("p"):
-        children = [
-            child
-            for child in para.children
-            if getattr(child, "name", None) or str(child).strip()
-        ]
-        if children and all(
-            getattr(child, "name", None) in BLOCK_LEVEL for child in children
-        ):
-            para.replace_with(*children)
+        if not any(getattr(c, "name", None) in BLOCK_LEVEL for c in para.children):
+            continue
+        pieces, run = [], []
+        for child in list(para.children):
+            if getattr(child, "name", None) in BLOCK_LEVEL:
+                pieces += [run, child]
+                run = []
+            else:
+                run.append(child)
+        pieces.append(run)
+        replacement, attrs = [], dict(para.attrs)
+        for piece in pieces:
+            if not isinstance(piece, list):
+                replacement.append(piece.extract())
+                continue
+            kept = [n for n in piece if getattr(n, "name", None) or str(n).strip()]
+            if not kept:
+                continue
+            if all(getattr(n, "name", None) == "a" and not n.get_text(strip=True) for n in kept):
+                replacement += [n.extract() for n in kept]
+                continue
+            fresh = soup.new_tag("p", **attrs)
+            attrs = {}
+            for node in piece:
+                fresh.append(node.extract())
+            replacement.append(fresh)
+        para.replace_with(*replacement)
     return str(soup)
 
 
@@ -380,7 +399,7 @@ def restore(html: str, blocks: dict[str, str]) -> tuple[str, list[str]]:
         if not rewrapped:
             missing.append(key)
     if blocks:
-        html = _drop_duplicate_captions(_unwrap_block_paragraphs(html))
+        html = _drop_duplicate_captions(lift_blocks(html))
     return html, missing
 
 

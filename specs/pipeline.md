@@ -269,6 +269,27 @@ valid siblings.
 Layer 4 (sequential digests of previously rewritten chapters) was considered
 and deferred; revisit if back-reference fidelity is lacking in practice.
 
+## Navigation
+
+The source TOC describes the author's sections, which a restructured
+chapter no longer has. After all chapters are assembled, `toc.number_headings`
+gives each rewritten chapter's section headings an id (depth 1–2 below the
+title, callout headings skipped; books that title sections with `<h1>`, like
+Statistics Done Wrong, count from there), and `toc.apply` makes that
+chapter's entry in both the NCX (`book.toc`) and the EPUB 3 nav document
+point at them. Page-list entries into rewritten chapters are dropped: their
+print page positions no longer exist. Untouched chapters keep their entries.
+This runs on every build, so `--rebuild` repairs an already-processed book.
+On identity builds of the 4 samples every TOC link resolves (HLW 498, Rust
+208, SRE 513, Stats 89).
+
+Block elements that markdown leaves inside a `<p>` (a figure next to a
+restored anchor) are lifted out (`blocks.lift_blocks`), and the source
+package's `prefix` declarations are carried over, because ebooklib rewrites
+the OPF with only its own. With both, identity builds of HLW and Rust pass
+epubcheck 5.3.0 with 0 errors, as the originals do; SRE and Stats (EPUB 2
+sources) keep only the errors their own untouched documents carry.
+
 ## Output identity & styling
 
 - Title gets " (Optimised)" appended; cover image gets an "OPTIMISED" banner

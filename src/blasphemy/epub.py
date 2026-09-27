@@ -1,4 +1,5 @@
 import re
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -84,9 +85,24 @@ def _is_matter(soup: BeautifulSoup, title: str, words: int) -> bool:
     return words < 1000 and "all rights reserved" in body.get_text(" ").lower()
 
 
+def package_prefixes(path: str | Path) -> list[tuple[str, str]]:
+    """The `prefix` declarations on the source package; ebooklib rewrites the
+    OPF with only its own, leaving e.g. ibooks: meta properties undeclared."""
+    with zipfile.ZipFile(path) as archive:
+        container = archive.read("META-INF/container.xml").decode("utf-8", "replace")
+        opf = re.search(r'full-path="([^"]+)"', container)
+        head = archive.read(opf.group(1)).decode("utf-8", "replace") if opf else ""
+    package = re.search(r"<package\b[^>]*>", head, re.S)
+    declared = re.search(r'\bprefix="([^"]*)"', package.group()) if package else None
+    return re.findall(r"([\w-]+):\s+(\S+)", declared.group(1)) if declared else []
+
+
 def load(path: str | Path) -> epub.EpubBook:
     book = epub.read_epub(str(path))
     _ensure_toc_uids(book.toc)
+    for name, uri in package_prefixes(path):
+        if name != "rendition":  # ebooklib always writes this one
+            book.add_prefix(name, uri)
     return book
 
 

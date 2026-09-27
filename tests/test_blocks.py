@@ -518,3 +518,19 @@ def test_table_title_without_its_table_is_not_a_bare_figcaption():
     rewritten = "<pre><code>x</code></pre><p>Table 2-1: Special Characters</p>"
     out = blocks.restore_captions(rewritten, CAPTIONED_HTML)
     assert "<figcaption" not in out
+
+
+def test_block_beside_an_anchor_is_lifted_out_of_its_paragraph():
+    # How Linux Works: a restored anchor and figure shared one paragraph
+    out = blocks.lift_blocks('<p><a id="Page_83"></a><figure><img src="a.png"/></figure></p><p>Next.</p>')
+    assert out == '<a id="Page_83"></a><figure><img src="a.png"/></figure><p>Next.</p>'
+
+
+def test_text_around_a_lifted_block_stays_in_paragraphs():
+    out = blocks.lift_blocks('<p class="lead">Before <table><tr><td>1</td></tr></table> after.</p>')
+    assert out == '<p class="lead">Before </p><table><tr><td>1</td></tr></table><p> after.</p>'
+
+
+def test_paragraphs_without_blocks_are_untouched():
+    html = "<p>Plain <em>text</em>.</p>"
+    assert blocks.lift_blocks(html) == html
