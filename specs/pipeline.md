@@ -20,11 +20,13 @@ information.
   auth); `kiro` is opt-in via `--provider kiro`. A provider without a system-prompt flag
   gets the system prompt folded into stdin. Binary lookup falls back past
   `PATH` to the usual install dirs because cron/make/nohup shells lose it.
-- **Default model:** `fable` on the claude provider, `claude-fable-5.1` at
-  `high` effort on kiro. Default since 2026-08-25. It came closer to the
-  length and budget contracts than Opus and reads denser at equal quality.
-  On the current samples 69 of 98 bodies still exceed the 70% ceiling
-  (`docs/review-2026-09-25.md`). Configurable via `--model`.
+- **Default model:** Claude Opus 5.5 at `high` effort on both providers
+  (`claude-opus-5-5` on claude, `claude-opus-5.5` on kiro), since
+  2026-09-27 at Kai's request; pinned ids so the default does not drift
+  when an alias moves. Fable (the default from 2026-08-25) produced every
+  validated sample: the hedge A/B, the opening-check A/B and the P/P2
+  comparison ran on Fable, so those results are not yet confirmed on
+  Opus 5.5. Configurable via `--model` / `--effort`.
 - **Book types:** non-fiction + technical. Rewriting can be aggressive.
 
 ## Flow

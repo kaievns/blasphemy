@@ -62,8 +62,8 @@ def test_kiro_call_shape():
     assert cmd[1:3] == ["chat", "--no-interactive"]
     assert "--trust-tools=" in cmd  # trust nothing; never --trust-all-tools
     assert "--trust-all-tools" not in cmd
-    # fable at high effort unless the caller overrides
-    assert cmd[cmd.index("--model") + 1] == "claude-fable-5.1"
+    # Opus 5.5 at high effort unless the caller overrides
+    assert cmd[cmd.index("--model") + 1] == "claude-opus-5.5"
     assert cmd[cmd.index("--effort") + 1] == "high"
     # no --agent: the default profile configured in kiro-cli applies
     assert "--agent" not in cmd
@@ -80,9 +80,10 @@ def test_kiro_defaults_overridable():
     assert cmd[cmd.index("--effort") + 1] == "low"
 
 
-def test_claude_sends_no_effort_unless_asked():
+def test_claude_defaults_to_opus_at_high_effort():
     cmd, _ = providers.build_call(providers.CLAUDE, "CHAPTER", "SYSTEM")
-    assert "--effort" not in cmd
+    assert cmd[cmd.index("--model") + 1] == "claude-opus-5-5"
+    assert cmd[cmd.index("--effort") + 1] == "high"
 
 
 def test_effort_omitted_when_provider_lacks_flag():

@@ -58,7 +58,9 @@ PATH. Override explicitly with `BLASPHEMY_CLAUDE_BIN` / `BLASPHEMY_KIRO_BIN`.
 ### claude (default)
 
 `claude -p` with the system prompt on `--system-prompt`, content on stdin,
-tools disabled. Models: `fable` (default), `opus`, `sonnet`, `haiku`.
+tools disabled. Defaults to `claude-opus-5-5` at `high` effort; any id or
+alias `claude --model` accepts works (`opus` resolves to the 1M-context
+`claude-opus-5-5[1m]`, `fable`, `sonnet`, `haiku`).
 Never pass `--bare`: it forces API-key auth and bypasses the subscription.
 
 Output is read from `--output-format stream-json --verbose`, not `text`.
@@ -76,9 +78,8 @@ result counts as empty output and is retried.
 
 `kiro-cli chat --no-interactive` (the bare `kiro` command opens the IDE).
 Install with `curl -fsSL https://cli.kiro.dev/install | bash`. Defaults to
-`claude-fable-5.1` at `high` effort; override with `--model` / `--effort`,
-list valid ids with `kiro-cli chat --list-models` (which flags fable as an
-internal preview). Constraints that shape the integration, verified against
+`claude-opus-5.5` at `high` effort; override with `--model` / `--effort`,
+list valid ids with `kiro-cli chat --list-models`. Constraints that shape the integration, verified against
 kiro-cli 2.19:
 
 - **Auth is the `kiro-cli login` session**, not an API key. The CLI keeps its
