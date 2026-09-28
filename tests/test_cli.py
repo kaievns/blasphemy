@@ -274,3 +274,40 @@ def test_polish_prompt_keeps_readability_and_quotes_only_the_author():
     assert "Takeaways are not repeats either" in prompt
     assert "Every back-reference must still point at something" in prompt
     assert "# Banned words" in prompt
+
+
+def test_every_run_ends_with_an_integrity_report(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / "o.epub"
+    with patch("blasphemy.providers.rewrite", side_effect=[OPENING, OPENING, NO_FIXES, NO_FIXES]):
+        code = cli.main([str(sample_epub), "-o", str(out), "--no-primer", "--only", "1"])
+    from blasphemy import pipeline
+
+    record = pipeline.integrity_record(pipeline.workdir_for(sample_epub))
+    assert record.exists() and "integrity:" in capsys.readouterr().out
+    problems = [f for f in json.loads(record.read_text()) if f["level"] == "problem"]
+    assert code == (1 if problems else 0)
+
+
+def test_verify_checks_a_built_book_without_agent_calls(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / "o.epub"
+    cli.main([str(sample_epub), "-o", str(out), "--rebuild"])
+    capsys.readouterr()
+    with patch("blasphemy.providers.rewrite") as rewrite:
+        code = cli.main([str(sample_epub), "-o", str(out), "--verify"])
+    rewrite.assert_not_called()
+    assert code == 0 and "integrity: 0 problems" in capsys.readouterr().out
+
+
+def test_verify_fails_on_problems_and_on_a_missing_output(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert cli.main([str(sample_epub), "-o", str(tmp_path / "none.epub"), "--verify"]) == 1
+    from blasphemy import integrity
+
+    out = tmp_path / "o.epub"
+    cli.main([str(sample_epub), "-o", str(out), "--rebuild"])
+    broken = [integrity.Finding("problem", "links broken", "ch.xhtml", "1: x.xhtml")]
+    with patch("blasphemy.integrity.verify", return_value=broken):
+        assert cli.main([str(sample_epub), "-o", str(out), "--verify"]) == 1
+    assert "problem: links broken" in capsys.readouterr().out

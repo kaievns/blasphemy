@@ -47,7 +47,8 @@ Flags: [`docs/usage.md`](docs/usage.md).
    run twice, that corrects the answer and first sections wherever they say
    more than the original.
 4. Assemble deterministically, then rebuild the epub with original styling,
-   code markup, images, and anchors restored. The title gains an
+   code markup, images, and anchors restored, and check the result against
+   the source (package, styling, links, navigation, protected content). The title gains an
    "(Optimised)" suffix and the cover an OPTIMISED banner.
 
 Fragile markup (MathML, inline SVG, figures, chapter titles, link anchors)

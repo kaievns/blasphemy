@@ -4,7 +4,7 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import check, epub, pipeline, polish, primer, providers, report, style
+from . import check, epub, integrity, pipeline, polish, primer, providers, report, style
 
 
 def default_prompt(name: str = "body") -> str:
@@ -50,6 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="reassemble the epub from cached rewrites only; never calls an "
         "agent, uncached chapters keep their original text",
     )
+    parser.add_argument(
+        "--verify", action="store_true",
+        help="check an already built output epub against the source and exit; no agent calls",
+    )
     parser.add_argument("--no-primer", action="store_true", help="skip book primer")
     parser.add_argument(
         "--no-polish", action="store_true",
@@ -91,6 +95,15 @@ def main(argv: list[str] | None = None) -> int:
         for chapter in epub.chapters(epub.load(args.epub)):
             print(f"{chapter.index:3d}  {chapter.words:6d}w  {chapter.href}  {chapter.title}")
         return 0
+
+    if args.verify:
+        built = args.output or args.epub.with_suffix(".optimised.epub")
+        if not built.exists():
+            print(f"not found: {built}", file=sys.stderr)
+            return 1
+        findings = integrity.verify(args.epub, built)
+        print(integrity_lines(findings, limit=None))
+        return 1 if any(f.level == "problem" for f in findings) else 0
 
     provider = providers.resolve(args.provider)
     if not args.rebuild and not providers.available(provider):
@@ -215,7 +228,21 @@ def main(argv: list[str] | None = None) -> int:
         reporter.close()
 
     print(reporter.summary(out_path, workdir))
-    return 1 if any(r.status == "failed" for r in results) else 0
+    record = pipeline.integrity_record(workdir)
+    findings = [integrity.Finding(**f) for f in json.loads(record.read_text())] if record.exists() else []
+    print(integrity_lines(findings) + (f"\n  full report: {record}" if findings else ""))
+    failed = any(r.status == "failed" for r in results)
+    return 1 if failed or any(f.level == "problem" for f in findings) else 0
+
+
+def integrity_lines(findings: list, limit: int | None = 5) -> str:
+    shown = sorted(findings, key=lambda f: f.level != "problem")
+    lines = [f"  {integrity.summary(findings)}"]
+    for f in shown[:limit]:
+        lines.append(f"    {f.level}: {f.kind} — {f.where}: {f.detail[:140]}")
+    if limit is not None and len(shown) > limit:
+        lines.append(f"    … {len(shown) - limit} more")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

@@ -31,10 +31,13 @@ defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
 `--effort` (default `xhigh`), `--timeout` seconds per call (default 2400),
 `--no-primer`, `--no-polish` to skip the second pass, `--no-check` to skip
-the opening check, `--force` to ignore cached rewrites. Each rewritten
+the opening check, `--force` to ignore cached rewrites, `--verify` to check an
+existing output epub against the source without rewriting anything. Each rewritten
 chapter's second-pass outcome is in `.blasphemy/<book>/NNN.polish.json`,
 and its opening-check fixes, applied and rejected, per call (the check
-runs twice), in `NNN.check.json`.
+runs twice), in `NNN.check.json`. Every run ends with a book-level
+integrity report (`.blasphemy/<book>/integrity.json`, summarised on screen);
+a problem there makes the run exit 1.
 
 Progress prints per chapter; interrupted runs resume from the `.blasphemy/`
 cache, so re-running after a quota exhaustion only redoes what is missing.

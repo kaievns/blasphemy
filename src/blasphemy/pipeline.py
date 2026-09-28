@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from . import blocks, convert, cover, epub, style, toc
+from . import blocks, convert, cover, epub, integrity, style, toc
 
 RATIO_MIN = 0.05
 RATIO_MAX = 1.5
@@ -36,6 +36,10 @@ def workdir_for(epub_path: Path, root: Path | None = None) -> Path:
 
 def chapter_file(workdir: str | Path, index: int, kind: str = "") -> Path:
     return Path(workdir) / f"{index:03d}{'.' + kind if kind else ''}.md"
+
+
+def integrity_record(workdir: str | Path) -> Path:
+    return Path(workdir) / "integrity.json"
 
 
 def check_record(workdir: str | Path, index: int) -> Path:
@@ -177,6 +181,7 @@ def optimise(
     refs = referenced_anchors(book, all_chapters)
     results = []
     renumbered: dict[str, list] = {}
+    replaced: set[str] = set()
     for chapter in all_chapters:
         starting(chapter)
         # blocks first: an anchor inside a protected figure travels with it,
@@ -275,6 +280,7 @@ def optimise(
                     html, headings = toc.number_headings(html)
                     renumbered[chapter.href] = headings
                     epub.replace_content(book, chapter.item_id, html)
+                    replaced.add(chapter.href)
             result = Result(
                 chapter.index, chapter.item_id, chapter.title, status,
                 len(source_md.split()),
@@ -293,4 +299,6 @@ def optimise(
             cover_item.set_content(cover.badge(cover_item.get_content(), badge_text))
 
     epub.save(book, out_path)
+    findings = integrity.verify(epub_path, out_path, rewritten=replaced)
+    integrity_record(workdir).write_text(json.dumps(integrity.to_json(findings), indent=1, ensure_ascii=False))
     return results

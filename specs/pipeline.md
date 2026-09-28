@@ -362,6 +362,39 @@ manifest `properties`). With these, HLW, Rust and Stats pass epubcheck
 source's 740 (HTML5 `data-type` attributes in a 2.0 package, broken
 fragment links) and adds none.
 
+## Integrity check
+
+After the book is written, `integrity.verify` compares the output epub with
+the source, in code rather than a model call: the check is mechanical and
+book-wide, a model cannot hold a whole book, and it would miss or invent
+link failures. It reads both zips directly and reports problems (the book
+is damaged) and warnings (worth a look) to `.blasphemy/<book>/integrity.json`;
+a problem makes the run exit 1. What it compares:
+
+- package: spine order, every source manifest resource still present
+- every document: well-formed XHTML (unless the source already was not),
+  the same stylesheet links, the same `<body>` attributes; an untouched
+  document's text unchanged
+- links: every internal link, image and stylesheet reference resolves,
+  except ones the source already shipped broken; NCX and nav entries
+  resolve, and entries outside rewritten chapters survive (a problem in
+  the book's primary navigation, nav for EPUB 3 and NCX for EPUB 2, a
+  warning in the fallback)
+- rewritten chapters: the styled wrapper that held the whole body
+  (`div.chapter`) is kept, CSS-styled classes the source used, no fewer
+  images, math, SVG or figures (protected, so a problem) or tables and code
+  blocks (a warning), no ⟦token⟧ or markdown syntax left in the text, no
+  duplicate ids, no new heading-level jumps
+
+`--verify` runs it alone against an existing output.
+
+On the samples, identity rebuilds of HLW, Rust and SRE have no problems;
+HLW and Rust lose NCX page targets and third-level entries (438 of 920 and
+259 of 449) because ebooklib regenerates the NCX from its own TOC model,
+a warning since their nav documents are untouched. A Stats rebuild with one
+rewritten chapter loses that chapter's `div.chapter` wrapper, which its CSS
+uses to size the title, and its `div.sidebar` box.
+
 ## Output identity & styling
 
 - Title gets " (Optimised)" appended; cover image gets an "OPTIMISED" banner
