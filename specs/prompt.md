@@ -65,7 +65,11 @@ the repo.
   audit: reasoning losses 3 (v2 4), opening losses 0, author reasons
   restored 12 (v2 4). Fidelity, `xhigh` / v2 / v3: claims kept 39.67 /
   39.67 / 39.50, hedges dropped 0.17 / 0.00 / 0.22, top-layer errors 1.99
-  / 1.72 / 2.22 per 1k, all within judge noise. v3 replaced v2 in
+  / 1.72 / 2.22 per 1k, within judge noise, but not only noise: of v3's
+  23 confirmed top-layer errors (`xhigh` 22, v2 19), 17 were already in
+  the draft and 6 were written by v3, in restored reasons and takeaways
+  that came back stronger than the original (a hedge dropped, scope
+  widened, a takeaway merged into another claim). v3 replaced v2 in
   `polish.md`.
 - 2026-09-28: reader panel, four unlabeled versions side by side with no
   reference text: the original chapter, Fable, Opus `xhigh`, and `xhigh`
