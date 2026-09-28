@@ -21,12 +21,26 @@ original supports: keep the rewrite's terms and ⟦...⟧ tokens, keep it about
 as long, add nothing the original does not say. If nothing of the sentence
 survives, the replacement is an empty string.
 
+After TOP come the chapter's section HEADINGS. TOP points to sections by
+their headings, and a heading that states a claim is read as one, so check
+each such heading like a sentence: flag it only when the original does not
+support it at that strength, judged against everything the original says
+in that section, not only its first line. A heading fix goes in the same
+list, with "heading" (copied exactly from HEADINGS) in place of
+"sentence". Its replacement changes only what overstates (the qualifier,
+the scope, the certainty) and keeps every term, mechanism, number and
+yardstick the heading names, in the heading's style and about its length.
+Every reference to that heading in the chapter is updated with it.
+
 Reply with JSON only, no preamble, no code fence:
 
 {"fixes": [{"sentence": "<the sentence copied exactly from TOP>",
             "source": "<the original's supporting passage copied exactly, or empty>",
             "problem": "<one short phrase>",
             "replacement": "<the corrected sentence, or empty>"}]}
+
+A heading fix: {"heading": "<the heading copied exactly from HEADINGS>",
+"source": "...", "problem": "...", "replacement": "<the corrected heading>"}.
 
 Reply {"fixes": []} when nothing needs fixing.
 

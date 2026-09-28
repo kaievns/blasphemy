@@ -48,6 +48,18 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: the opening check sees the chapter's headings and may
+  correct a claim heading that says more than the original, with the
+  same quoted evidence, carrying the rename to every `*heading*`
+  reference. On the 18 v3 second-pass outputs (check run twice), an audit
+  against the original of every heading fix: first wording 65 fixes, 59
+  real (91%), 3 dropped a load-bearing specific ("A Router Is a Linux
+  Machine with IP Forwarding" -> "A Linux Machine Can Act as a Router"), 2
+  needless weakenings; after adding "change only what overstates, keep
+  every term, mechanism, number and yardstick, judge against the whole
+  section": 73 fixes, 69 real (95%), 0 dropped specifics, 3 needless
+  weakenings ("Also a Ceiling" -> "Also a Soft Ceiling"), 1 incomplete.
+  Samples `experiments/check3-2026-09-28/`, `check4-2026-09-28/`.
 - 2026-09-28: opening check run twice. Tracing top-layer errors showed
   they come from the body pass and survive because each check call
   catches a different subset. A second call on the 18 shipped v3 outputs

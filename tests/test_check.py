@@ -134,3 +134,62 @@ def test_patch_repeatedly_keeps_earlier_fixes_when_a_later_pass_fails():
     out, report = check.patch_repeatedly(SOURCE, BODY, ask)
     assert "application-layer protocol." in out
     assert report["passes"][1] == {"error": "quota"}
+
+
+HSOURCE = "NAT is the most commonly used way to share one address. Many manufacturers turned to Linux."
+HBODY = (
+    "⟦TITLE-1⟧\n\n"
+    "Private subnets need the router (*Private Subnets Reach the Internet Only Through NAT*).\n\n"
+    "## ⟦ANCHOR:nat⟧Private Subnets Reach the Internet Only Through NAT\n\nText.\n\n"
+    "## Dedicated Routers Are Usually Linux Machines\n\nText.\n\n"
+    "```\n## Private Subnets Reach the Internet Only Through NAT\n```\n"
+)
+
+
+def hfix(heading, replacement, source="NAT is the most commonly used way"):
+    return {"heading": heading, "replacement": replacement, "source": source, "problem": "p"}
+
+
+def test_headings_are_listed_without_the_title_or_code():
+    assert check.headings(HBODY) == [
+        "Private Subnets Reach the Internet Only Through NAT",
+        "Dedicated Routers Are Usually Linux Machines",
+    ]
+    text = check.request("SRC", "TOP TEXT", check.headings(HBODY))
+    assert text.index("TOP TEXT") < text.index("HEADINGS:") < text.index("Dedicated Routers")
+
+
+def test_heading_fix_renames_the_heading_and_its_references():
+    out, applied, rejected = check.apply_heading_fixes(HBODY, HSOURCE, [hfix(
+        "Private Subnets Reach the Internet Only Through NAT", "Private Subnets Usually Reach the Internet Through NAT")])
+    assert applied and not rejected
+    assert "## ⟦ANCHOR:nat⟧Private Subnets Usually Reach the Internet Through NAT\n" in out
+    assert "(*Private Subnets Usually Reach the Internet Through NAT*)" in out
+    assert "```\n## Private Subnets Reach the Internet Only Through NAT\n```" in out  # code untouched
+
+
+def test_heading_fix_needs_evidence_a_real_heading_and_a_single_line():
+    fixes = [
+        hfix("Dedicated Routers Are Usually Linux Machines", "Many Dedicated Routers Run Linux", source="a quote the book lacks"),
+        hfix("A Heading That Does Not Exist", "X"),
+        hfix("Dedicated Routers Are Usually Linux Machines", "## Many Routers Run Linux", source="Many manufacturers turned to Linux"),
+        hfix("Dedicated Routers Are Usually Linux Machines", "Routers pass the gate", source="Many manufacturers turned to Linux"),
+    ]
+    out, applied, rejected = check.apply_heading_fixes(HBODY, HSOURCE, fixes)
+    assert out == HBODY and not applied
+    assert [r["rejected"] for r in rejected] == [
+        "quoted evidence is not in the original", "heading not found once",
+        "replacement is not a heading", "replacement uses a banned word",
+    ]
+
+
+def test_patch_applies_sentence_and_heading_fixes_from_one_reply():
+    reply = json.dumps({"fixes": [
+        hfix("Dedicated Routers Are Usually Linux Machines", "Many Dedicated Routers Run Linux", source="Many manufacturers turned to Linux"),
+        {"sentence": "Private subnets need the router (*Private Subnets Reach the Internet Only Through NAT*).",
+         "replacement": "Private subnets most commonly reach the internet with NAT (*Private Subnets Reach the Internet Only Through NAT*).",
+         "source": "NAT is the most commonly used way", "problem": "p"},
+    ]})
+    out, report = check.patch(HSOURCE, HBODY, lambda text: reply)
+    assert "## Many Dedicated Routers Run Linux" in out and "most commonly reach the internet" in out
+    assert len(report["applied"]) == 2 and not report["rejected"]

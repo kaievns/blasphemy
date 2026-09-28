@@ -225,7 +225,12 @@ revision fails its guards):
    only if its sentence occurs once in the opening, its quoted passage is
    really in the original, it keeps every ⟦token⟧, and it adds no banned
    word; everything else is recorded as rejected in `NNN.check.json`. The
-   check runs twice (`check.PASSES`), the second call on the already
+   call also sees the chapter's section headings: the opening points to
+   sections by heading, so a claim heading that says more than the original
+   ("…Only Through NAT") gets the same treatment, with the same quoted
+   evidence required, and the rename carries to every `*heading*` reference
+   (`check.apply_heading_fixes`; the title and headings inside code are
+   never touched). The check runs twice (`check.PASSES`), the second call on the already
    corrected opening, because each fresh call catches a different subset;
    a call that fails or breaks the body stops the loop and keeps the
    earlier calls' fixes. `--no-check` skips the pass. The second call
