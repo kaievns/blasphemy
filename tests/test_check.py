@@ -1,3 +1,5 @@
+import json
+
 from blasphemy import check
 
 SOURCE = (
@@ -107,3 +109,28 @@ def test_a_fix_that_breaks_the_body_check_is_dropped_alone():
 def test_unparseable_reply_leaves_the_body_and_says_so():
     body, report = check.patch(SOURCE, BODY, lambda text: "Sorry, I cannot do that.")
     assert body == BODY and report["error"] == "unparseable reply"
+
+
+def test_patch_repeatedly_checks_the_already_fixed_opening_again():
+    seen = []
+    first = {"fixes": [fix("DNS is too dynamic for the kernel.", "DNS is an application-layer protocol.", "DNS is an application-layer protocol")]}
+    second = {"fixes": [fix("Generic code is as fast because of monomorphization.", "Generic code is usually as fast.", "usually as fast")]}
+    replies = iter([json.dumps(first), json.dumps(second)])
+    def ask(text):
+        seen.append(text); return next(replies)
+    out, report = check.patch_repeatedly(SOURCE, BODY, ask)
+    assert "application-layer protocol." in seen[1] and "usually as fast." in out
+    assert [len(p["applied"]) for p in report["passes"]] == [1, 1]
+
+
+def test_patch_repeatedly_keeps_earlier_fixes_when_a_later_pass_fails():
+    first = json.dumps({"fixes": [fix("DNS is too dynamic for the kernel.", "DNS is an application-layer protocol.", "DNS is an application-layer protocol")]})
+    replies = iter([first])
+    def ask(text):
+        try:
+            return next(replies)
+        except StopIteration:
+            raise RuntimeError("quota")
+    out, report = check.patch_repeatedly(SOURCE, BODY, ask)
+    assert "application-layer protocol." in out
+    assert report["passes"][1] == {"error": "quota"}

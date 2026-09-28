@@ -1,3 +1,4 @@
+import json
 import re
 
 from blasphemy import epub, pipeline
@@ -404,3 +405,15 @@ def test_failed_force_run_never_serves_the_old_rewrite_again(sample_epub, tmp_pa
         sample_epub, tmp_path / "b.epub", lambda md, ch: calls.append(1) or WHOLE, workdir, only={1}
     )
     assert calls == [1]
+
+
+def test_check_note_sums_passes_and_reports_failures(tmp_path):
+    record = tmp_path / "001.check.json"
+    record.write_text(json.dumps({"passes": [{"applied": [1, 2], "rejected": []}, {"applied": [3], "rejected": []}]}))
+    assert pipeline.check_note(record) == "opening check: 3 fixed (2 + 1)"
+    record.write_text(json.dumps({"passes": [{"applied": [1], "rejected": []}, {"error": "quota"}]}))
+    assert pipeline.check_note(record) == "opening check: 1 fixed (1 + 0), a pass failed: quota"
+    record.write_text(json.dumps({"passes": [{"error": "quota"}]}))
+    assert pipeline.check_note(record) == "opening check failed: quota"
+    record.write_text(json.dumps({"applied": [1], "rejected": []}))
+    assert pipeline.check_note(record) == "opening check: 1 fixed"

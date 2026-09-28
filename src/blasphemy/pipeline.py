@@ -61,11 +61,19 @@ def check_note(record: Path) -> str:
     if not record.exists():
         return ""
     data = json.loads(record.read_text())
-    if "error" in data:
-        return f"opening check failed: {data['error']}"
-    note = f"opening check: {len(data.get('applied', []))} fixed"
-    if data.get("reverted"):
-        note += f", reverted ({data['reverted']})"
+    passes = data.get("passes", [data])
+    errors = [p["error"] for p in passes if "error" in p]
+    if errors and len(errors) == len(passes):
+        return f"opening check failed: {errors[0]}"
+    fixed = [len(p.get("applied", [])) for p in passes]
+    note = f"opening check: {sum(fixed)} fixed"
+    if len(passes) > 1:
+        note += f" ({' + '.join(map(str, fixed))})"
+    reverted = [p["reverted"] for p in passes if p.get("reverted")]
+    if reverted:
+        note += f", reverted ({reverted[0]})"
+    if errors:
+        note += f", a pass failed: {errors[0]}"
     return note
 
 

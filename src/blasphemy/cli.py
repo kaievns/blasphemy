@@ -190,16 +190,9 @@ def main(argv: list[str] | None = None) -> int:
         record.unlink(missing_ok=True)
         if args.no_check:
             return body
-        try:
-            patched, report_ = check.patch(
-                chapter_md, body, lambda text: call_agent(text, check_prompt)
-            )
-        except Exception as error:
-            record.write_text(json.dumps({"error": str(error)}, indent=1))
-            return body
-        if pipeline.body_problem(chapter_md, patched):
-            report_["reverted"] = pipeline.body_problem(chapter_md, patched)
-            patched = body
+        patched, report_ = check.patch_repeatedly(
+            chapter_md, body, lambda text: call_agent(text, check_prompt)
+        )
         record.write_text(json.dumps(report_, indent=1, ensure_ascii=False))
         return patched
 

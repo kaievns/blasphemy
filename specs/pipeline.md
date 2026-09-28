@@ -179,8 +179,9 @@ non-chapters the 2026-09-25 review found and none of the 76 chapters.
 
 ## Rewrite architecture (fractal body and opening check since 2026-09-27, second pass since 2026-09-28)
 
-Three Claude calls per chapter (a fourth when a banned word slips, a fifth
-when the second pass's first revision fails its guards):
+Four Claude calls per chapter: body, second pass, two opening checks (one
+more when a banned word slips, one more when the second pass's first
+revision fails its guards):
 
 1. **Body pass** (`prompts/body.md`, option P): the fractal restructure —
    the same shape at every level. Under the title, the problem the chapter
@@ -223,8 +224,12 @@ when the second pass's first revision fails its guards):
    replacement that says only what the original supports. A fix is applied
    only if its sentence occurs once in the opening, its quoted passage is
    really in the original, it keeps every ⟦token⟧, and it adds no banned
-   word; everything else is recorded as rejected in `NNN.check.json`. A
-   failed check call keeps the unpatched body. `--no-check` skips the pass.
+   word; everything else is recorded as rejected in `NNN.check.json`. The
+   check runs twice (`check.PASSES`), the second call on the already
+   corrected opening, because each fresh call catches a different subset;
+   a call that fails or breaks the body stops the loop and keeps the
+   earlier calls' fixes. `--no-check` skips the pass. The second call
+   measured in `prompt.md` (iteration log, 2026-09-28).
 
    Measured 2026-09-27 on 18 body drafts (6 chapters × 3), each judged
    blind with and without the check (re-judging identical text varies by

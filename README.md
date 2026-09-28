@@ -43,9 +43,9 @@ Flags: [`docs/usage.md`](docs/usage.md).
    terminology) that is prepended to every chapter call.
 3. Per chapter, a **body pass** (a depth-ordered restructure against a
    55–70% length target), a **second pass** that cuts claims repeated
-   across levels and restores the author's voice, then an **opening check**
-   that corrects the answer and first sections wherever they say more than
-   the original.
+   across levels and restores the author's voice, then an **opening check**,
+   run twice, that corrects the answer and first sections wherever they say
+   more than the original.
 4. Assemble deterministically, then rebuild the epub with original styling,
    code markup, images, and anchors restored. The title gains an
    "(Optimised)" suffix and the cover an OPTIMISED banner.

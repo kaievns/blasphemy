@@ -8,6 +8,7 @@ HEADING = re.compile(r"^(#{1,6})\s")
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 TOKEN = re.compile(r"⟦[^⟦⟧]*⟧")
 TOP_SECTIONS = 2
+PASSES = 2
 
 
 def split_top(body: str) -> tuple[str, str]:
@@ -127,3 +128,23 @@ def patch(source_md: str, body: str, ask: Callable[[str], str]) -> tuple[str, di
         return body, {"error": "unparseable reply", "reply": reply[:500]}
     patched, applied, rejected = apply_fixes(top, source_md, fixes, rest)
     return _join(patched, rest), {"applied": applied, "rejected": rejected}
+
+
+def patch_repeatedly(
+    source_md: str, body: str, ask: Callable[[str], str], passes: int = PASSES
+) -> tuple[str, dict]:
+    """Check the opening `passes` times, each on the last result; a failing or breaking pass stops the loop."""
+    reports = []
+    for _ in range(passes):
+        try:
+            patched, report = patch(source_md, body, ask)
+        except Exception as error:
+            reports.append({"error": str(error)})
+            break
+        problem = pipeline.body_problem(source_md, patched)
+        if problem:
+            reports.append({**report, "reverted": problem})
+            break
+        body = patched
+        reports.append(report)
+    return body, {"passes": reports}

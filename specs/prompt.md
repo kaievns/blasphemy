@@ -48,6 +48,17 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: opening check run twice. Tracing top-layer errors showed
+  they come from the body pass and survive because each check call
+  catches a different subset. A second call on the 18 shipped v3 outputs
+  applied 22 fixes in 14 drafts (first call: 4.1 per chapter); an audit
+  against the original rated 21 real overstatements corrected, 1
+  incomplete (it still cites an overclaiming heading, which no pass may
+  edit), 0 errors introduced. Judged blind in one batch, one call vs two:
+  confirmed top-layer errors 20 → 16, 2.29 → 1.48 per 1k (better in 7
+  drafts, worse in 3, p = 0.34; the judge scored 4 unchanged drafts 3 vs
+  1), claims kept 39.61 → 39.67. Cost 101 s and $0.48 per chapter.
+  Samples `experiments/check2-2026-09-28/`.
 - 2026-09-28: second pass v3 = v2 + "takeaways are not repeats" (a
   sentence stating a principle or conclusion the author emphasizes stays
   in the section that argues it) + "every back-reference must still point
