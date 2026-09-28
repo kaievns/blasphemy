@@ -65,7 +65,13 @@ the repo.
   1.81 / 3.83, texture 3.11 / 4.31 / 4.19, readability 3.89 / 4.00 / 3.97.
   Fidelity: claims kept 39.67 in all three; top-layer errors 1.99 / 1.81 /
   1.72 per 1k. v2 replaced v1 in
-  `polish.md`.
+  `polish.md`. Blind four-way with Fable (36 judgments, labels rotated):
+  v2 ranked first in 26, above Fable and the draft in 36 of 36, above v1
+  in 26 (p = 0.011). Per judgment, Fable / draft / v1 / v2: reasoning at
+  the top 4.00 / 4.53 / 4.31 / 4.50, flow 3.47 / 3.61 / 3.61 / 4.03, gaps
+  1.39 / 1.92 / 2.44 / 1.50, restatements 5.39 / 6.67 / 3.69 / 5.22,
+  texture 3.61 / 3.17 / 4.14 / 4.14, readability 2.61 / 4.08 / 4.14 /
+  4.14.
 - 2026-09-28: second pass (`polish.md`) after the body, before the opening
   check, from Kai's ask to cut the repetition and close the texture gap to
   Fable without gaps in the flow or losing readability. Two variants on
