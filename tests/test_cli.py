@@ -89,7 +89,7 @@ def test_default_prompt_loads():
 def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     out = tmp_path / "out.epub"
-    responses = ["PRIMER", BODY, NO_FIXES, BODY, NO_FIXES]
+    responses = ["PRIMER", BODY, BODY, NO_FIXES, BODY, BODY, NO_FIXES]
     with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
         code = cli.main([str(sample_epub), "-o", str(out), "--provider", "claude", "--model", "sonnet"])
     assert code == 0
@@ -97,8 +97,8 @@ def test_run_wires_pipeline(sample_epub, tmp_path, monkeypatch, capsys):
     assert rewrite.call_args.kwargs["model"] == "sonnet"
     assert "rewritten" in capsys.readouterr().out
 
-    # call order: primer, then a body call and a check call per chapter
-    assert rewrite.call_count == 5
+    # call order: primer, then a body, a second-pass and a check call per chapter
+    assert rewrite.call_count == 7
     primer_system = rewrite.call_args_list[0].args[1]
     assert "book primer" in primer_system.lower()
     body_system = rewrite.call_args_list[1].args[1]
@@ -120,12 +120,12 @@ def test_body_retried_once_when_banned_word_slips(sample_epub, tmp_path, monkeyp
     monkeypatch.chdir(tmp_path)
     clean = BODY
     dirty = "# R\n\nwe delve\n\n" + " ".join(["word"] * 300)
-    responses = [dirty, clean, NO_FIXES, clean, NO_FIXES]
+    responses = [dirty, clean, clean, NO_FIXES, clean, clean, NO_FIXES]
     with patch("blasphemy.providers.rewrite", side_effect=responses) as rewrite:
         assert cli.main([str(sample_epub), "-o", str(tmp_path / "o.epub"), "--no-primer"]) == 0
     retry = rewrite.call_args_list[1].args[0]
     assert "banned word(s): delve" in retry
-    assert rewrite.call_count == 5
+    assert rewrite.call_count == 7
 
 
 def test_body_prompt_keeps_hedges_and_adds_no_links():
@@ -191,9 +191,9 @@ def check_run(sample_epub, tmp_path, responses, *extra):
 
 def test_opening_check_patches_the_body_and_records_it(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    code, rewrite, cached, record = check_run(sample_epub, tmp_path, [OPENING, FIX])
-    assert code == 0 and rewrite.call_count == 2
-    assert "ORIGINAL:" in rewrite.call_args_list[1].args[0]
+    code, rewrite, cached, record = check_run(sample_epub, tmp_path, [OPENING, OPENING, FIX])
+    assert code == 0 and rewrite.call_count == 3
+    assert "TOP:" in rewrite.call_args_list[2].args[0]
     assert "always win" not in cached.read_text()
     assert "jumps over the lazy dog." in cached.read_text()
     assert json.loads(record.read_text())["applied"][0]["problem"] == "invented claim"
@@ -201,18 +201,70 @@ def test_opening_check_patches_the_body_and_records_it(sample_epub, tmp_path, mo
 
 def test_opening_check_failure_keeps_the_body(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    code, _, cached, record = check_run(sample_epub, tmp_path, [OPENING, RuntimeError("quota")])
+    code, _, cached, record = check_run(sample_epub, tmp_path, [OPENING, OPENING, RuntimeError("quota")])
     assert code == 0 and "always win" in cached.read_text()
     assert "quota" in json.loads(record.read_text())["error"]
 
 
 def test_no_check_skips_the_pass(sample_epub, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    code, rewrite, cached, record = check_run(sample_epub, tmp_path, [OPENING], "--no-check")
-    assert code == 0 and rewrite.call_count == 1 and not record.exists()
+    code, rewrite, cached, record = check_run(sample_epub, tmp_path, [OPENING, OPENING], "--no-check")
+    assert code == 0 and rewrite.call_count == 2 and not record.exists()
 
 
 def test_opening_check_outcome_is_in_the_chapter_result(sample_epub, tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
-    check_run(sample_epub, tmp_path, [OPENING, FIX])
+    check_run(sample_epub, tmp_path, [OPENING, OPENING, FIX])
     assert "opening check: 1 fixed" in capsys.readouterr().out
+
+
+REVISED = OPENING.replace("The answer: quick brown foxes always win.", "The answer, in the author's words: quick brown foxes always win.")
+
+
+def polish_record(sample_epub):
+    from blasphemy import pipeline
+
+    return pipeline.polish_record(pipeline.workdir_for(sample_epub), 1)
+
+
+def test_second_pass_revises_the_body_before_the_check(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    code, rewrite, cached, _ = check_run(sample_epub, tmp_path, [OPENING, REVISED, NO_FIXES])
+    assert code == 0 and rewrite.call_count == 3
+    payload, system = rewrite.call_args_list[1].args
+    assert "REWRITE:" in payload and "The answer: quick brown foxes" in payload
+    assert system == cli.default_prompt("polish")
+    assert "in the author's words" in rewrite.call_args_list[2].args[0]  # the check reads the revision
+    assert "in the author's words" in cached.read_text()
+    assert json.loads(polish_record(sample_epub).read_text()) == {"attempts": 1, "rejected": []}
+    assert "second pass applied" in capsys.readouterr().out
+
+
+def test_second_pass_that_breaks_the_guards_keeps_the_body(sample_epub, tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    broken = "Sure, here is the chapter.\n\n" + OPENING
+    code, rewrite, cached, _ = check_run(sample_epub, tmp_path, [OPENING, broken, broken, NO_FIXES])
+    assert code == 0 and rewrite.call_count == 4
+    assert cached.read_text().startswith("# R") and "Sure, here" not in cached.read_text()
+    assert json.loads(polish_record(sample_epub).read_text())["kept_body"]
+    assert "second pass rejected" in capsys.readouterr().out
+
+
+def test_second_pass_failure_keeps_the_body_and_still_checks(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code, rewrite, cached, record = check_run(sample_epub, tmp_path, [OPENING, RuntimeError("quota"), FIX])
+    assert code == 0 and rewrite.call_count == 3
+    assert "quota" in json.loads(polish_record(sample_epub).read_text())["error"]
+    assert json.loads(record.read_text())["applied"]
+
+
+def test_no_polish_skips_the_second_pass(sample_epub, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code, rewrite, _, _ = check_run(sample_epub, tmp_path, [OPENING, NO_FIXES], "--no-polish")
+    assert code == 0 and rewrite.call_count == 2 and not polish_record(sample_epub).exists()
+
+
+def test_polish_prompt_keeps_readability_and_quotes_only_the_author():
+    prompt = cli.default_prompt("polish")
+    assert "under 30 words" in prompt and "Never add a flourish of your own" in prompt
+    assert "# Banned words" in prompt

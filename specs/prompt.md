@@ -38,7 +38,7 @@
 ## Prompt files
 
 Live in `src/blasphemy/prompts/`: `body.md` (fractal body pass, option P),
-`check.md` (opening check) and `primer.md`. Override the body
+`polish.md` (second pass), `check.md` (opening check) and `primer.md`. Override the body
 prompt with `--prompt <path>` for experiments.
 
 ## Iteration log
@@ -48,6 +48,31 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: second pass (`polish.md`) after the body, before the opening
+  check, from Kai's ask to cut the repetition and close the texture gap to
+  Fable without gaps in the flow or losing readability. Two variants on
+  the 18 Opus `xhigh` bodies (6 chapters × 3), each then checked: an edit
+  list (span replacements, each verified: a cut repeat names the
+  statement it keeps, a restored phrase quotes the original, no long
+  sentence, dash or semicolon added) and a full revision (the chapter
+  returned whole, guarded on tokens, headings, code, tables, links,
+  length). Blind three-way with the unrevised draft, two label orders, 36
+  judgments: the full revision ranked first in 27 and above the draft in
+  33 (sign p < 0.001), above the edit list in 28 (p = 0.001);
+  restatements 216 → 115 (edits) → 88 (full), no-duplication 101 → 145,
+  texture 109 → 162, flow 135 → 141, readability 142 → 146, gaps 56 → 61,
+  reasoning at the top 151 → 143; every difference rated "slight" (about
+  95% of the text is unchanged). The edit list left more gaps (67): a cut
+  span cannot reword the paragraph around it. Against Fable with the model
+  A/B's judge: full won 18 of 18 (9 clear): restatements 73 vs 81,
+  no-duplication 63 vs 55, texture 76 vs 69, readability 75 vs 49 — where
+  the unrevised `xhigh` trailed on all three of the first. Fidelity,
+  skeptic-rechecked: claims kept 39.7 in all three arms, top-layer errors
+  1.8 vs 2.0 per 1k (within noise). Mechanics unchanged: sentences over 35
+  words 4%, dashes 0.2 per 1k, length 89%. Cost: $1.09 and 394 s per
+  chapter at `xhigh`. The full revision shipped; all 18 validated
+  revisions pass the production guards. Samples
+  `experiments/polish-2026-09-28/`.
 - 2026-09-27: effort A/B on Opus 5.5, `high` vs `xhigh` vs `max`, same
   setup and chapters. `high` and `xhigh` ran 6 chapters × 3 draws; `max`
   ran only the 2 Statistics Done Wrong chapters × 3, because a 4.5k-word

@@ -42,6 +42,21 @@ def check_record(workdir: str | Path, index: int) -> Path:
     return Path(workdir) / f"{index:03d}.check.json"
 
 
+def polish_record(workdir: str | Path, index: int) -> Path:
+    return Path(workdir) / f"{index:03d}.polish.json"
+
+
+def polish_note(record: Path) -> str:
+    if not record.exists():
+        return ""
+    data = json.loads(record.read_text())
+    if "error" in data:
+        return f"second pass failed: {data['error']}"
+    if data.get("kept_body"):
+        return f"second pass rejected ({'; '.join(data['rejected'])})"
+    return "second pass applied"
+
+
 def check_note(record: Path) -> str:
     if not record.exists():
         return ""
@@ -207,7 +222,11 @@ def optimise(
                         failed_file.write_text(output_md)
                         raise ValueError(f"{problem}, see {failed_file}")
                     output_file.write_text(output_md)
-                    status, detail = "rewritten", check_note(check_record(workdir, chapter.index))
+                    status = "rewritten"
+                    detail = "; ".join(filter(None, (
+                        polish_note(polish_record(workdir, chapter.index)),
+                        check_note(check_record(workdir, chapter.index)),
+                    )))
                     slipped = style.banned(source_md, output_md)
                     if slipped:
                         note = f"banned words: {', '.join(slipped)}"

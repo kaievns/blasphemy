@@ -4,7 +4,7 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from . import check, epub, pipeline, primer, providers, report, style
+from . import check, epub, pipeline, polish, primer, providers, report, style
 
 
 def default_prompt(name: str = "body") -> str:
@@ -51,6 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
         "agent, uncached chapters keep their original text",
     )
     parser.add_argument("--no-primer", action="store_true", help="skip book primer")
+    parser.add_argument(
+        "--no-polish", action="store_true",
+        help="skip the second pass that removes repetition and restores the author's voice",
+    )
     parser.add_argument(
         "--no-check", action="store_true",
         help="skip the pass that checks the chapter's opening against the original",
@@ -99,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     body_prompt = args.prompt.read_text() if args.prompt else default_prompt("body")
+    polish_prompt = default_prompt("polish")
     check_prompt = default_prompt("check")
     out_path = args.output or args.epub.with_suffix(".optimised.epub")
     workdir = pipeline.workdir_for(args.epub)
@@ -142,6 +147,21 @@ def main(argv: list[str] | None = None) -> int:
             return base + primer.chapter_context(book_primer, chapter)
         return base
 
+    def second_pass(chapter_md: str, body: str, index: int) -> str:
+        record = pipeline.polish_record(workdir, index)
+        record.unlink(missing_ok=True)
+        if args.no_polish:
+            return body
+        try:
+            polished, report_ = polish.polish(
+                chapter_md, body, lambda text: call_agent(text, polish_prompt)
+            )
+        except Exception as error:
+            record.write_text(json.dumps({"error": str(error)}, indent=1))
+            return body
+        record.write_text(json.dumps(report_, indent=1, ensure_ascii=False))
+        return polished
+
     def rewrite(chapter_md: str, chapter: epub.Chapter) -> str:
         words = len(chapter_md.split())
         contract = (
@@ -165,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
             failed = pipeline.chapter_file(workdir, chapter.index, "failed")
             failed.write_text(body)
             raise ValueError(f"{problem}, see {failed}")
+        body = second_pass(chapter_md, body, chapter.index)
         record = pipeline.check_record(workdir, chapter.index)
         record.unlink(missing_ok=True)
         if args.no_check:

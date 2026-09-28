@@ -40,7 +40,7 @@ information.
    back matter (below), `--skip`/`--only` exclusions, and documents under
    `--min-words` (default 200) words (covers, title pages).
 3. Convert chapter HTML → markdown with fragile markup tokenised, run the
-   body pass (see Rewrite architecture), put the chapter title first.
+   rewrite passes (see Rewrite architecture), put the chapter title first.
 4. Convert rewritten markdown → HTML, replace the chapter content in the book.
 5. Write the reassembled epub. CSS, spine and non-cover images untouched.
    The title and cover change (see Output identity & styling). The original
@@ -177,9 +177,10 @@ rights reserved". An Introduction, or anything typed chapter or bodymatter,
 is always rewritten. On the 4 sample books this passes through the 22
 non-chapters the 2026-09-25 review found and none of the 76 chapters.
 
-## Rewrite architecture (fractal body and opening check since 2026-09-27)
+## Rewrite architecture (fractal body and opening check since 2026-09-27, second pass since 2026-09-28)
 
-Two Claude calls per chapter (a third only when a banned word slips):
+Three Claude calls per chapter (a fourth when a banned word slips, a fifth
+when the second pass's first revision fails its guards):
 
 1. **Body pass** (`prompts/body.md`, option P): the fractal restructure —
    the same shape at every level. Under the title, the problem the chapter
@@ -193,7 +194,22 @@ Two Claude calls per chapter (a third only when a banned word slips):
    the user message (`cli.py`) and never measured. Framing matters more than
    numbers: a comprehension-first framing ignores numeric targets entirely
    (H/I experiments).
-2. **Opening check** (`prompts/check.md`, `check.py`): the chapter-level
+2. **Second pass** (`prompts/polish.md`, `polish.py`): a fresh call gets
+   the original and the body and returns the whole chapter revised for two
+   things only: claims stated twice across levels are cut or turned into a
+   bridge that picks up the open question, rewording the neighbouring
+   sentence so no gap shows; and texture the body flattened comes back in
+   the author's own words (narration like "the author's advice is…" back
+   into the author's voice, dropped quips and asides restored, rewriting
+   leaks removed), with the body's short-sentence, no-dash-chain style
+   kept. The revision replaces the body only if it passes the body check,
+   keeps the same ⟦tokens⟧, headings, code blocks, tables and links, adds
+   no banned word, and stays within 80–110% of the body's length; one
+   retry, then the body is kept. The outcome is in `NNN.polish.json`; a
+   failed call keeps the body. `--no-polish` skips the pass. Measured in
+   `prompt.md` (iteration log, 2026-09-28): restatements −59%, texture +49%,
+   fidelity and readability unchanged.
+3. **Opening check** (`prompts/check.md`, `check.py`): the chapter-level
    opening and the first two sections, the part a reader may stop at, are
    checked
    sentence by sentence against the original in a fresh call. The reply is

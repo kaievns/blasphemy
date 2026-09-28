@@ -30,9 +30,10 @@ Key flags: `--provider` (`claude` default, or `kiro`), `--model` (provider-speci
 defaults per provider), `-o` output path, `--prompt` alternate body-prompt file,
 `--min-words` skip threshold (default 200), `--skip`/`--only` chapter indices,
 `--effort` (default `xhigh`), `--timeout` seconds per call (default 2400),
-`--no-primer`, `--no-check` to skip the opening check, `--force` to ignore
-cached rewrites. Each rewritten chapter's opening-check fixes, applied and
-rejected, are in `.blasphemy/<book>/NNN.check.json`.
+`--no-primer`, `--no-polish` to skip the second pass, `--no-check` to skip
+the opening check, `--force` to ignore cached rewrites. Each rewritten
+chapter's second-pass outcome is in `.blasphemy/<book>/NNN.polish.json`,
+and its opening-check fixes, applied and rejected, in `NNN.check.json`.
 
 Progress prints per chapter; interrupted runs resume from the `.blasphemy/`
 cache, so re-running after a quota exhaustion only redoes what is missing.
