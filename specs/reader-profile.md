@@ -109,6 +109,10 @@ conflict once separated.
 17. Strategic *marked* redundancy: one canonical precise statement per idea
     + recaps at predictable points, explicitly labeled as recaps. Unmarked
     paraphrase-restatement reads as contradiction — worst of both profiles.
+    Reasoning outranks de-duplication: when cutting a repeat would cost a
+    level its reasons, the repeat stays. Kai's call (2026-09-28): a few
+    extra duplications over damaged reasoning every time, as a priority,
+    not an absolute rule.
 
 ### Retention apparatus (learning science, unchanged from v1)
 
