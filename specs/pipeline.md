@@ -294,7 +294,9 @@ rebuild from cache with no model calls.
 
 The chapter title is protected the same way (`⟦TITLE-0: 1 Foundations⟧`)
 when its markup carries styling — a class on the heading, styled child
-spans, or a `<header>` wrapper, which is taken whole. `# Title` flattens all
+spans, or a `<header>` wrapper, which is taken whole, as is any block that
+holds nothing but the title (DocBook's `div.titlepage > div > div > h1`,
+which Stats' CSS sizes through `div.chapter > div.titlepage:first-child`). `# Title` flattens all
 of it to a bare `<h1>`, and on No Starch books that broke the opener layout
 twice over: the centred number/title spans were lost, and `figure.opener`
 (`margin-top: -3em; float: left`) is designed to float into `h1.chapter`'s
@@ -388,12 +390,16 @@ a problem makes the run exit 1. What it compares:
 
 `--verify` runs it alone against an existing output.
 
-On the samples, identity rebuilds of HLW, Rust and SRE have no problems;
-HLW and Rust lose NCX page targets and third-level entries (438 of 920 and
-259 of 449) because ebooklib regenerates the NCX from its own TOC model,
-a warning since their nav documents are untouched. A Stats rebuild with one
-rewritten chapter loses that chapter's `div.chapter` wrapper, which its CSS
-uses to size the title, and its `div.sidebar` box.
+On the samples, identity rebuilds of HLW, Rust and SRE have no problems,
+and neither do rebuilds with rewritten chapters of all four (Stats ch2/4,
+SRE ch3/22, Rust ch2, HLW ch9; epubcheck 0 errors, SRE 721 of its source's
+740). It found rewritten Stats chapters losing `div.chapter` (16 of 16 in a
+full rewrite), since fixed. Warnings that remain: HLW and Rust lose NCX page
+targets and third-level entries (392 of 920, 242 of 449) because ebooklib
+regenerates the NCX from its own TOC model, harmless while their nav
+documents are untouched; and rewritten chapters lose publisher classes the
+markdown round trip cannot carry, some of them styled blocks (Stats ch2:
+`div.figure` 4, `div.sidebar` 1, footnote 8, `div.blockquote` 2).
 
 ## Output identity & styling
 
@@ -402,8 +408,11 @@ uses to size the title, and its `div.sidebar` box.
 - ebooklib's writer regenerates every chapter document from a template,
   discarding original heads (stylesheet links) and body attributes. We bypass
   it: documents are written raw (`_RawHtml`), untouched chapters byte-for-byte
-  original, rewritten chapters keep their original head + body attrs so the
-  book's CSS keeps applying. Raw document bytes live in `item.content`;
+  original, rewritten chapters keep their original head + body attrs, and
+  go back inside the elements that alone held the original body
+  (`epub._rewrap`: DocBook's `div.chapter`, same tag and attributes, its id
+  dropped only when the rewrite restored that id), so the book's CSS keeps
+  applying. Raw document bytes live in `item.content`;
   `item.get_content()` is the regenerating path — never use it for documents.
 
 ## Known limitations (v1)

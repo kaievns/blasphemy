@@ -272,3 +272,25 @@ def test_epub3_book_stays_epub3(tmp_path):
     epub.save(epub.load(_book_file(tmp_path, "three", "3.0")), out)
     opf = _package(out)
     assert 'version="3.0"' in opf and "<meta property=" in opf
+
+
+def test_rewritten_body_goes_back_inside_the_original_wrapper(tmp_path):
+    book = eb.EpubBook()
+    book.set_identifier("w"); book.set_title("W"); book.set_language("en")
+    ch = eb.EpubHtml(title="c", file_name="c.xhtml", uid="c")
+    ch.set_content(b'<html><head><link rel="stylesheet" href="s.css"/></head><body class="b">'
+                   b'<div class="chapter" id="ch" title="A &amp; B"><div class="titlepage"><h1>T</h1></div><p>old</p></div></body></html>')
+    book.add_item(ch)
+    epub.replace_content(book, "c", '<h1 id="ch">T</h1><p>new</p>')
+    html = book.get_item_with_id("c").content.decode()
+    assert '<body class="b"><div class="chapter" title="A &amp; B"><h1 id="ch">T</h1><p>new</p></div></body>' in html
+    assert html.count('id="ch"') == 1  # the rewrite kept the anchor, so the wrapper drops it
+
+
+def test_body_without_a_sole_wrapper_is_not_wrapped(tmp_path):
+    book = eb.EpubBook()
+    ch = eb.EpubHtml(title="c", file_name="c.xhtml", uid="c")
+    ch.set_content(b"<html><body><h1>T</h1><p>old</p></body></html>")
+    book.add_item(ch)
+    epub.replace_content(book, "c", "<h1>T</h1><p>new</p>")
+    assert "<body><h1>T</h1><p>new</p></body>" in book.get_item_with_id("c").content.decode()

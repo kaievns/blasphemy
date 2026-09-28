@@ -568,3 +568,11 @@ def test_restored_caption_does_not_duplicate_an_anchor_placed_elsewhere():
 def test_block_inside_a_heading_or_emphasis_is_unwrapped():
     out = blocks.lift_blocks("<h1><header><h1>1 Foundations</h1></header></h1><p><em><figure>F</figure></em></p>")
     assert out == "<header><h1>1 Foundations</h1></header><figure>F</figure>"
+
+
+def test_docbook_title_block_is_protected_whole():
+    html = ('<div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a id="t"></a>Chapter 7</h1>'
+            '</div></div></div><p>Text.</p></div>')
+    out, blocks_ = blocks.protect(html)
+    assert blocks_["TITLE-0"].startswith('<div class="titlepage">') and "Chapter 7" in blocks_["TITLE-0"]
+    assert "⟦TITLE-0" in out and "titlepage" not in out

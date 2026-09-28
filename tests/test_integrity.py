@@ -85,3 +85,12 @@ def test_links_the_source_already_broke_are_not_blamed_on_the_rebuild(tmp_path):
 def test_summary_counts_levels():
     found = [integrity.Finding("problem", "k", "w", "d"), integrity.Finding("warning", "k", "w", "d"), integrity.Finding("warning", "k", "w", "d")]
     assert integrity.summary(found) == "integrity: 1 problem, 2 warnings"
+
+
+def test_the_nav_document_may_change_for_rewritten_chapters(tmp_path):
+    nav = doc('<nav epub:type="toc"><ol><li><a href="ch1.xhtml#c1">One</a></li></ol></nav>').replace(
+        '<html xmlns="http://www.w3.org/1999/xhtml">', '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">')
+    item = '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>'
+    source = book(tmp_path / "a.epub", {"nav.xhtml": nav}, extra_items=item)
+    renamed = book(tmp_path / "b.epub", {"nav.xhtml": nav.replace(">One<", ">One, Rewritten<")}, extra_items=item)
+    assert ("warning", "untouched document changed") not in kinds(integrity.verify(source, renamed, rewritten={"ch1.xhtml"}))

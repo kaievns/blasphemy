@@ -106,6 +106,18 @@ def _gist(node) -> str:
     return text[:GIST_MAX] or "diagram"
 
 
+def _sole_holder(node):
+    """The outermost ancestor that holds nothing but `node` (DocBook's
+    div.titlepage > div > div > h1), so CSS keyed on that block still applies."""
+    while node.parent is not None and node.parent.name not in ("body", "[document]"):
+        parent = node.parent
+        others = [c for c in parent.children if c is not node and (getattr(c, "name", None) or str(c).strip())]
+        if others:
+            break
+        node = parent
+    return node
+
+
 def _chapter_title(soup):
     """The chapter's title block, when its markup carries styling.
 
@@ -124,7 +136,7 @@ def _chapter_title(soup):
     if heading is None:
         return None
     header = heading.find_parent("header")
-    target = header if header is not None else heading
+    target = header if header is not None else _sole_holder(heading)
     styled = bool(target.attrs) or any(
         child.attrs for child in target.find_all(True)
     )

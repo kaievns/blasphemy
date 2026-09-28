@@ -1,6 +1,7 @@
 import re
 import zipfile
 from dataclasses import dataclass
+from html import escape as html_escape
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -157,9 +158,8 @@ def replace_content(book: epub.EpubBook, item_id: str, body_html: str) -> None:
     )
     attrs = ""
     if original.body:
-        for name, value in original.body.attrs.items():
-            joined = " ".join(value) if isinstance(value, list) else value
-            attrs += f' {name}="{joined}"'
+        attrs = _attrs(original.body.attrs)
+        body_html = _rewrap(original.body, body_html)
     document = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<html xmlns="http://www.w3.org/1999/xhtml" '
@@ -167,6 +167,32 @@ def replace_content(book: epub.EpubBook, item_id: str, body_html: str) -> None:
         f"<head>{head}</head><body{attrs}>{body_html}</body></html>"
     )
     item.set_content(document.encode("utf-8"))
+
+
+def _attrs(attrs: dict, skip: set[str] = frozenset()) -> str:
+    out = ""
+    for name, value in attrs.items():
+        if name in skip:
+            continue
+        joined = " ".join(value) if isinstance(value, list) else value
+        out += f' {name}="{html_escape(str(joined), quote=True)}"'
+    return out
+
+
+def _rewrap(body, body_html: str) -> str:
+    """Put the rewritten body back inside the elements that alone held the
+    original body (DocBook's div.chapter), which the book's CSS keys on."""
+    opening, closing, node = "", "", body
+    ids = set(re.findall(r'\bid="([^"]+)"', body_html))
+    while True:
+        children = [c for c in node.children if getattr(c, "name", None)]
+        text = [c for c in node.children if not getattr(c, "name", None) and str(c).strip()]
+        if len(children) != 1 or text:
+            break
+        node = children[0]
+        opening += f"<{node.name}{_attrs(node.attrs, {'id'} if node.get('id') in ids else set())}>"
+        closing = f"</{node.name}>" + closing
+    return opening + body_html + closing
 
 
 def retitle(book: epub.EpubBook, suffix: str) -> None:

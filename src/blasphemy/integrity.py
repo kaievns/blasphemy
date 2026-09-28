@@ -182,7 +182,7 @@ def verify(source: str | Path, output: str | Path, rewritten: set[str] | None = 
             add("warning", "body attributes changed", rel, f"{s.body.attrs} -> {o.body.attrs}")
         is_rewritten = rel in changed if rewritten is not None else _prose(s) != _prose(o)
         if not is_rewritten:
-            if _prose(s) != _prose(o):
+            if out_doc != out.nav_href and _prose(s) != _prose(o):
                 add("warning", "untouched document changed", rel, "text differs from the source")
             continue
         lost_wrappers = [w for w in _wrappers(s) if w not in _wrappers(o) and set(w.split(".")[1:]) & out.css_classes]
