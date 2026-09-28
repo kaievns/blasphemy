@@ -146,14 +146,28 @@ note in place as an opaque box, defeating the compression the prompt asks
 for.
 
 What *is* restored is styling for the notes the model chose to keep as a
-`## Note` heading plus paragraphs: `restyle_notes` reuses the original
+`## Note` heading plus body blocks (paragraphs, lists, quotes), or as a
+blockquote opening with its bold label (`> **Note:** …`): `restyle_notes` reuses the original
 callout of the same label (No Starch's `<aside epub:type="sidebar"><section
 class="note">`, DocBook's `div.note|tip|warning|…`) as a shell, stripped to
 its label and rules, and puts the rewritten paragraphs inside, so the label,
 rules and italics come back around the model's text. It takes at most as
-many following paragraphs as the original callout held: the note has no end
+many following blocks as the original callout held: the note has no end
 marker in markdown, and taking every paragraph swallowed main text (and a
-shell that kept its own body showed the original listing twice). A dissolved note is left alone. The chapter
+shell that kept its own body showed the original listing twice); the
+shell's empty anchors stay, since other chapters link to them (Stats'
+`pr03 → ch02#tips`). A dissolved note is left alone.
+
+Other publisher styling the markdown round trip drops comes back after
+restoring: a block the publisher wrapped singly (DocBook `div.footnote > p`,
+`div.blockquote > blockquote.blockquote`) is re-wrapped with its class when
+the rewrite has the same block, matched by an anchor id it carries, else by
+identical text (at least 90% similar for non-paragraphs, since quotes come
+back lightly normalised) (`restore_wrappers`); links get their class back by
+target (`a.footnote`, `a.xref`, `a.ulink`, `a.indexterm`;
+`restore_link_classes`); and when the source puts one class on most
+paragraphs right after a heading (No Starch `BodyFirst`: no indent), the
+first paragraph under each rewritten heading gets it (`restore_section_leads`). The chapter
 title detector skips headings inside callouts, or a chapter without a
 styled title would take a note's "Note" heading as the title.
 
@@ -273,7 +287,9 @@ lost in the round trip — and publishers put the styling in different places:
 So protection targets the *smallest element that carries the styling*: climb
 from each image through wrappers that hold it alone (no text, no second
 image), and protect that. Figures are always taken whole so `<figcaption>`
-travels with them. An image with nothing beyond `src`/`alt` and no classed
+travels with them, and so is DocBook's equivalent, `div.figure` or
+`div.informalfigure` (anchor, image block and `p.title` caption in one
+styled div). An image with nothing beyond `src`/`alt` and no classed
 wrapper is left as markdown — no token, no failure surface.
 
 Order matters: blocks are protected *before* anchors. An `id` inside a
@@ -399,12 +415,15 @@ On the samples, identity rebuilds of HLW, Rust and SRE have no problems,
 and neither do rebuilds with rewritten chapters of all four (Stats ch2/4,
 SRE ch3/22, Rust ch2, HLW ch9; epubcheck 0 errors, SRE 721 of its source's
 740). It found rewritten Stats chapters losing `div.chapter` (16 of 16 in a
-full rewrite), since fixed. Warnings that remain: HLW and Rust lose NCX page
+full rewrite) and, in those four chapters, `div.figure`, `div.sidebar`,
+`div.footnote`, `div.blockquote`, link classes and No Starch `BodyFirst`
+leads, all since restored. Warnings that remain: HLW and Rust lose NCX page
 targets and third-level entries (392 of 920, 242 of 449) because ebooklib
 regenerates the NCX from its own TOC model, harmless while their nav
-documents are untouched; and rewritten chapters lose publisher classes the
-markdown round trip cannot carry, some of them styled blocks (Stats ch2:
-`div.figure` 4, `div.sidebar` 1, footnote 8, `div.blockquote` 2).
+documents are untouched; and callouts the rewrite dissolved into its prose
+or asides (7 of HLW ch9's 22 notes, Rust ch2's 8 notes, both No Starch
+boxes, one Stats sidebar), which is the prompt's choice, not reconstruction
+damage.
 
 ## Output identity & styling
 

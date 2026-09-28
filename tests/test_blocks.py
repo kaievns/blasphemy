@@ -576,3 +576,60 @@ def test_docbook_title_block_is_protected_whole():
     out, blocks_ = blocks.protect(html)
     assert blocks_["TITLE-0"].startswith('<div class="titlepage">') and "Chapter 7" in blocks_["TITLE-0"]
     assert "⟦TITLE-0" in out and "titlepage" not in out
+
+
+def test_docbook_figure_is_protected_with_its_caption():
+    html = ('<div class="figure"><a id="f1"></a><div class="figure-contents"><div class="mediaobject">'
+            '<img src="a.png" alt="A"/></div></div><p class="title"><b>Figure 2-1. </b>Coins</p></div><p>Text.</p>')
+    out, blocks_ = blocks.protect(html)
+    token = next(k for k in blocks_ if k.startswith("DIV"))
+    assert blocks_[token].startswith('<div class="figure">') and "Figure 2-1" in blocks_[token]
+    assert "Coins" not in out.replace(f"⟦{token}", "")[out.find("⟧"):]
+
+
+SIDEBAR = ('<div class="sidebar"><a id="tips"></a><p class="title">Tips</p>'
+           '<div class="itemizedlist"><ul class="itemizedlist"><li>Old tip.</li></ul></div></div>')
+
+
+def test_sidebar_rewritten_as_heading_and_list_is_reboxed_with_its_anchor():
+    rewritten = "<h2>Tips</h2><ul><li>New tip.</li></ul><p>After.</p>"
+    out = blocks.restyle_notes(rewritten, "<p>x</p>" + SIDEBAR)
+    assert out.startswith('<div class="sidebar"><a id="tips"></a><p class="title">Tips</p>')
+    assert "New tip." in out and "Old tip." not in out and out.endswith("<p>After.</p>")
+
+
+def test_note_kept_as_a_labelled_quote_is_reboxed():
+    note = '<div class="note"><h3 class="title">Note</h3><p>Old.</p></div>'
+    out = blocks.restyle_notes("<blockquote><p><strong>Note:</strong> New text.</p></blockquote>", note)
+    assert out.startswith('<div class="note"><h3 class="title">Note</h3>') and "<p>New text.</p>" in out
+    assert "<blockquote>" not in out and "Note:" not in out
+
+
+def test_singly_wrapped_blocks_get_their_wrapper_back():
+    original = ('<div class="footnote"><p><a id="ftn.1" href="#r1">1</a> A note.</p></div>'
+                '<div class="blockquote"><blockquote class="blockquote"><p>To be or not to be, that is the question.</p></blockquote></div>')
+    rewritten = ('<p><a id="ftn.1"></a><a href="#r1">1</a> A note.</p>'
+                 '<blockquote><p>To be, or not to be: that is the question.</p></blockquote>')
+    out = blocks.restore_wrappers(rewritten, original)
+    assert '<div class="footnote"><p><a id="ftn.1"></a>' in out
+    assert '<div class="blockquote"><blockquote class="blockquote"><p>To be, or not' in out
+    assert blocks.restore_wrappers(out, original) == out  # never wraps twice
+
+
+def test_paragraphs_are_only_rewrapped_on_an_anchor_or_identical_text():
+    original = '<div class="epigraph"><p>A fairly long original sentence that was quoted.</p></div>'
+    assert blocks.restore_wrappers("<p>A fairly long original sentence that got reworded.</p>", original).startswith("<p>")
+
+
+def test_link_and_anchor_classes_come_back():
+    original = '<a class="footnote" href="#ftn.1" id="r1">1</a><a class="xref" href="#s2">2</a><a class="indexterm" id="ix1"></a>'
+    out = blocks.restore_link_classes('<a id="r1"></a><a href="#ftn.1">1</a> <a href="#s2">x</a><a id="ix1"></a>', original)
+    assert '<a class="footnote" href="#ftn.1">' in out and '<a class="xref" href="#s2">' in out and '<a class="indexterm" id="ix1">' in out
+
+
+def test_section_lead_class_follows_the_publishers_convention():
+    original = '<h2>A</h2><p class="BodyFirst">x</p><p>y</p><h2>B</h2><p class="BodyFirst">z</p>'
+    out = blocks.restore_section_leads("<h2>A</h2><p>new</p><p>more</p><h3>C</h3><p>deep</p>", original)
+    assert out == '<h2>A</h2><p class="BodyFirst">new</p><p>more</p><h3>C</h3><p class="BodyFirst">deep</p>'
+    mixed = '<h2>A</h2><p class="BodyFirst">x</p><h2>B</h2><p>z</p><h2>C</h2><p>w</p>'
+    assert blocks.restore_section_leads("<h2>A</h2><p>new</p>", mixed) == "<h2>A</h2><p>new</p>"

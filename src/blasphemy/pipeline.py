@@ -273,6 +273,9 @@ def optimise(
                     html = blocks.carry_lead_class(html, chapter.html)
                     html = blocks.restore_captions(html, chapter.html)
                     html = blocks.restyle_notes(html, chapter.html)
+                    html = blocks.restore_wrappers(html, chapter.html)
+                    html = blocks.restore_link_classes(html, chapter.html)
+                    html = blocks.restore_section_leads(html, chapter.html)
                     html = blocks.lift_blocks(html)
                     # tokens from a cache written by an older pipeline are
                     # unrestorable here; never ship them to the reader
