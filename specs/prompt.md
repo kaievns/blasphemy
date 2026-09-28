@@ -48,6 +48,21 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: reader panel, four unlabeled versions side by side with no
+  reference text: the original chapter, Fable, Opus `xhigh`, and `xhigh`
+  + second pass v2; 18 chapter-draws × 5 judges with different lenses and
+  label orders (the reader profile; learn it for work; explain it from
+  memory; faithful to the author; plain preference). First choice of 90:
+  v2 50, `xhigh` 32, original 8 (all from the author lens), Fable 0. v2
+  ranked above the original in 82, above Fable in 90, above `xhigh` in 58
+  (p = 0.008); Fable ranked below the original in 59. By lens, v2 was
+  first for the reader profile (14 of 18), plain preference (15) and the
+  author lens (7, original 8; v2 above `xhigh` 15 of 18), but `xhigh` led
+  learn and explain (11 of 18 each): there v2 had cut restated takeaway
+  lines ("The key idea is to permit only the things you find acceptable",
+  "the target is therefore both a minimum and a maximum") and, in SRE ch9,
+  left dangling references ("Again, not enough testing"), where `xhigh`
+  won 14 of 15 judgments. Samples `experiments/panel-2026-09-28/`.
 - 2026-09-28: second pass v2, from Kai's call that reasoning outranks
   de-duplication. A top-layer audit of v1's 181 changes to the opening
   and first two sections found 34 that cut or weakened a reason (10 in the
