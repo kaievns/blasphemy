@@ -66,7 +66,12 @@ the repo.
   39.3 vs 39.8 on the same chapters. Cost per chapter (reported): `high`
   $1.26, `xhigh` $2.35 (2.5× the time), `max` $11.60 on the Stats
   chapters vs $0.98 at `high` (22× the time). Kai chose `xhigh` as the
-  default.
+  default. `xhigh` vs Fable, blind in pairs with the model A/B's judge:
+  `xhigh` preferred in 14 of 18 (8 clear; `high` had 3 clear); reasoning
+  at the top 76 vs 71 (`high` trailed Fable, 67 vs 74), readability 76 vs
+  49, top-layer errors 22 vs 41; still behind on restatements (118 vs 92),
+  no-duplication (53 vs 60) and texture (65 vs 72). Fable's 4 wins: 2 in
+  How Linux Works ch16, 2 in Stats ch11.
   Samples `experiments/effort-2026-09-27/`.
 - 2026-09-27: model A/B, Fable (no effort flag) vs Opus 5.5 at `high`, on
   the production setup (P body prompt + opening check), 6 chapters × 3
