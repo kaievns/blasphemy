@@ -48,6 +48,21 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: body prompt P3 = P + "reasoning outranks this rule" (keep a
+  restatement when removing it would cost a level its reason or takeaway)
+  + carrying a claim up to the opening never strengthens it (its
+  qualifiers and scope come with it) + a claim heading says no more than
+  its section. Full production pipeline (second pass v3, opening check x2)
+  on the 18 chapter-draws, blind against P in one batch. Fidelity: top-layer
+  errors 16 -> 13 (1.50 -> 1.02 per 1k; fewer in 7 drafts, more in 5, p =
+  0.77), known errors 0.50 -> 0.31, claims kept 39.72 / 39.78. Structure,
+  36 pair judgments in two label orders: P3 preferred in 15 (p = 0.41);
+  top errors 1.28 -> 0.72, reasoning at the top 4.11 -> 3.97, restatements
+  4.17 -> 4.75, flow 3.64 -> 3.78, gaps 2.00 -> 1.86. The reasoning priority
+  added repetition without adding reasoning; the accuracy gain is small and
+  the opening check (twice, with heading fixes) now covers it. Not
+  shipped. Samples `experiments/body2-2026-09-28/`, prompt
+  `experiments/prompts/body-p3.md`.
 - 2026-09-28: the opening check sees the chapter's headings and may
   correct a claim heading that says more than the original, with the
   same quoted evidence, carrying the rename to every `*heading*`
