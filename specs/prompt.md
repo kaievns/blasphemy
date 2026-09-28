@@ -56,15 +56,15 @@ the repo.
   cut, shorten or weaken a reason, qualifier or bridge in the opening; a
   section restating a reason goes one level deeper instead of deleting it;
   a section still opens with its answer; when a cut would cost reasoning,
-  keep the repeat. Same drafts (17 of 18; one call hung): top-layer
-  reasoning losses 34 → 4, opening losses 10 → 0, voice restorations 92 →
-  92. Blind three-way with the unrevised draft and v1, two label orders,
-  34 judgments: v2 ranked first in 23 and above the draft in 34 of 34,
-  above v1 in 23 (p = 0.058). Per judgment, draft / v1 / v2: reasoning at
-  the top 4.24 / 3.88 / 4.26, gaps 1.50 / 1.82 / 0.85, flow 3.59 / 3.79 /
-  4.18, restatements 5.68 / 1.71 / 3.82, texture 3.12 / 4.32 / 4.21,
-  readability 3.88 / 4.00 / 3.97. Fidelity: claims kept 39.65 in all
-  three; top-layer errors 2.07 / 1.92 / 1.82 per 1k. v2 replaced v1 in
+  keep the repeat. Same 18 drafts: top-layer reasoning losses 34 → 4,
+  opening losses 10 → 0, voice restorations 100 → 95. Blind three-way with
+  the unrevised draft and v1, two label orders, 36 judgments: v2 ranked
+  first in 24 and above the draft in 36 of 36, above v1 in 24 (p = 0.065).
+  Per judgment, draft / v1 / v2: reasoning at the top 4.22 / 3.86 / 4.25,
+  gaps 1.53 / 1.81 / 0.89, flow 3.58 / 3.81 / 4.17, restatements 5.89 /
+  1.81 / 3.83, texture 3.11 / 4.31 / 4.19, readability 3.89 / 4.00 / 3.97.
+  Fidelity: claims kept 39.67 in all three; top-layer errors 1.99 / 1.81 /
+  1.72 per 1k. v2 replaced v1 in
   `polish.md`.
 - 2026-09-28: second pass (`polish.md`) after the body, before the opening
   check, from Kai's ask to cut the repetition and close the texture gap to

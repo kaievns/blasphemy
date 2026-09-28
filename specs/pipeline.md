@@ -210,8 +210,8 @@ when the second pass's first revision fails its guards):
    no banned word, and stays within 80–110% of the body's length; one
    retry, then the body is kept. The outcome is in `NNN.polish.json`; a
    failed call keeps the body. `--no-polish` skips the pass. Measured in
-   `prompt.md` (iteration log, 2026-09-28, v2): restatements −33%, texture
-   +35%, gaps −43%, flow +16%; reasoning at the top, readability and
+   `prompt.md` (iteration log, 2026-09-28, v2): restatements −35%, texture
+   +35%, gaps −42%, flow +16%; reasoning at the top, readability and
    fidelity unchanged.
 3. **Opening check** (`prompts/check.md`, `check.py`): the chapter-level
    opening and the first two sections, the part a reader may stop at, are
