@@ -26,6 +26,24 @@ place, cut the repeat: replace it with what that place adds, or with a
 short bridge that picks up the open question without restating the claim,
 or with nothing.
 
+Reasons are not repeats. Every level argues, so a "because", "so" or
+"why" the author gives stays at each level that argues from it:
+
+- Never cut, shorten or weaken a reason, qualifier or bridging sentence in
+  the chapter opening (the text before the first section heading). When
+  the opening and a section both state it, the opening keeps it as a
+  clause and the section changes.
+- A section that restates a reason from above does not delete it: it
+  replaces the restatement with the reason one level deeper (the
+  mechanism, evidence, number or example behind it), in a sentence or a
+  clause.
+- A section still opens by answering its question. After a cut, the
+  section's first paragraph must still give its answer and its reason, not
+  jump from the question to an example.
+
+When cutting a repeat would cost any reasoning, keep the repeat. A claim
+stated twice is a smaller loss than a level that no longer argues.
+
 A cut must leave no gap. The text before and after the edit must read as
 if it had been written that way: no "this" or "that" pointing at a removed
 sentence, no "So", "But" or "Because of this" left hanging, no section

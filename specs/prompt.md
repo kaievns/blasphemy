@@ -48,6 +48,24 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: second pass v2, from Kai's call that reasoning outranks
+  de-duplication. A top-layer audit of v1's 181 changes to the opening
+  and first two sections found 34 that cut or weakened a reason (10 in the
+  chapter opening), every one still stated elsewhere: "keep each claim
+  once" treated reasons as claims. v2 adds: reasons are not repeats; never
+  cut, shorten or weaken a reason, qualifier or bridge in the opening; a
+  section restating a reason goes one level deeper instead of deleting it;
+  a section still opens with its answer; when a cut would cost reasoning,
+  keep the repeat. Same drafts (17 of 18; one call hung): top-layer
+  reasoning losses 34 → 4, opening losses 10 → 0, voice restorations 92 →
+  92. Blind three-way with the unrevised draft and v1, two label orders,
+  34 judgments: v2 ranked first in 23 and above the draft in 34 of 34,
+  above v1 in 23 (p = 0.058). Per judgment, draft / v1 / v2: reasoning at
+  the top 4.24 / 3.88 / 4.26, gaps 1.50 / 1.82 / 0.85, flow 3.59 / 3.79 /
+  4.18, restatements 5.68 / 1.71 / 3.82, texture 3.12 / 4.32 / 4.21,
+  readability 3.88 / 4.00 / 3.97. Fidelity: claims kept 39.65 in all
+  three; top-layer errors 2.07 / 1.92 / 1.82 per 1k. v2 replaced v1 in
+  `polish.md`.
 - 2026-09-28: second pass (`polish.md`) after the body, before the opening
   check, from Kai's ask to cut the repetition and close the texture gap to
   Fable without gaps in the flow or losing readability. Two variants on
@@ -70,8 +88,9 @@ the repo.
   skeptic-rechecked: claims kept 39.7 in all three arms, top-layer errors
   1.8 vs 2.0 per 1k (within noise). Mechanics unchanged: sentences over 35
   words 4%, dashes 0.2 per 1k, length 89%. Cost: $1.09 and 394 s per
-  chapter at `xhigh`. The full revision shipped; all 18 validated
-  revisions pass the production guards. Samples
+  chapter at `xhigh`. The full revision shipped as v1, replaced the same
+  day by v2 (entry above); all 18 validated revisions pass the production
+  guards. Samples
   `experiments/polish-2026-09-28/`.
 - 2026-09-27: effort A/B on Opus 5.5, `high` vs `xhigh` vs `max`, same
   setup and chapters. `high` and `xhigh` ran 6 chapters × 3 draws; `max`

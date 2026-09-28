@@ -267,4 +267,6 @@ def test_no_polish_skips_the_second_pass(sample_epub, tmp_path, monkeypatch):
 def test_polish_prompt_keeps_readability_and_quotes_only_the_author():
     prompt = cli.default_prompt("polish")
     assert "under 30 words" in prompt and "Never add a flourish of your own" in prompt
+    assert "Reasons are not repeats" in prompt
+    assert "When cutting a repeat would cost any reasoning, keep the repeat" in prompt
     assert "# Banned words" in prompt
