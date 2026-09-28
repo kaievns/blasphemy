@@ -220,3 +220,55 @@ def test_single_quoted_package_prefix_is_read(tmp_path):
         z.writestr("META-INF/container.xml", '<container><rootfiles><rootfile full-path="OPS/p.opf"/></rootfiles></container>')
         z.writestr("OPS/p.opf", "<package prefix='ibooks: http://x/'></package>")
     assert epub.package_prefixes(path) == [("ibooks", "http://x/")]
+
+
+def _book_file(tmp_path, name, version):
+    import zipfile
+
+    book = eb.EpubBook()
+    book.set_identifier("v-id")
+    book.set_title("V")
+    book.set_language("en")
+    ch = eb.EpubHtml(title="c", file_name="c.xhtml", uid="c")
+    ch.set_content(b"<html><body><h1>C</h1><p>x</p></body></html>")
+    book.add_item(ch)
+    book.spine = [ch]
+    book.toc = [eb.Link("c.xhtml", "C", "c")]
+    book.add_item(eb.EpubNcx())
+    built = tmp_path / f"{name}-built.epub"
+    eb.write_epub(str(built), book)
+    source = tmp_path / f"{name}.epub"
+    with zipfile.ZipFile(built) as src, zipfile.ZipFile(source, "w") as out:
+        for info in src.infolist():
+            data = src.read(info.filename)
+            if info.filename.endswith(".opf"):
+                data = data.replace(b'version="3.0"', f'version="{version}"'.encode())
+            out.writestr(info, data)
+    return source
+
+
+def _package(path):
+    import zipfile
+
+    with zipfile.ZipFile(path) as archive:
+        names = archive.namelist()
+        assert names[0] == "mimetype" and archive.getinfo("mimetype").compress_type == zipfile.ZIP_STORED
+        return archive.read(next(n for n in names if n.endswith(".opf"))).decode()
+
+
+def test_epub2_book_is_written_back_as_epub2(tmp_path):
+    book = epub.load(_book_file(tmp_path, "two", "2.0"))
+    assert book.version == "2.0"
+    out = tmp_path / "out.epub"
+    epub.save(book, out)
+    opf = _package(out)
+    assert 'version="2.0"' in opf and 'version="3.0"' not in opf
+    assert "prefix=" not in opf and "<meta property=" not in opf and "properties=" not in opf
+    assert epub.load(out).version == "2.0"
+
+
+def test_epub3_book_stays_epub3(tmp_path):
+    out = tmp_path / "out.epub"
+    epub.save(epub.load(_book_file(tmp_path, "three", "3.0")), out)
+    opf = _package(out)
+    assert 'version="3.0"' in opf and "<meta property=" in opf

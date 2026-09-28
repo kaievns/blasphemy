@@ -353,9 +353,14 @@ On identity builds of the 4 samples every TOC link resolves (HLW 498, Rust
 Block elements that markdown leaves inside a `<p>` (a figure next to a
 restored anchor) are lifted out (`blocks.lift_blocks`), and the source
 package's `prefix` declarations are carried over, because ebooklib rewrites
-the OPF with only its own. With both, identity builds of HLW and Rust pass
-epubcheck 5.3.0 with 0 errors, as the originals do; SRE and Stats (EPUB 2
-sources) keep only the errors their own untouched documents carry.
+the OPF with only its own. ebooklib also always writes a 3.0 package, and
+an EPUB 2 book's untouched XHTML 1.1 documents fail EPUB 3's HTML5 rules
+(Stats: 91 errors from a clean source), so a 2.0 source is written back as
+a 2.0 package (`epub.save`: version, no `prefix`, no `<meta property>`, no
+manifest `properties`). With these, HLW, Rust and Stats pass epubcheck
+5.3.0 with 0 errors, as their originals do; SRE carries exactly its
+source's 740 (HTML5 `data-type` attributes in a 2.0 package, broken
+fragment links) and adds none.
 
 ## Output identity & styling
 

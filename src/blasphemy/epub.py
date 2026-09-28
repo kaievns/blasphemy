@@ -208,3 +208,24 @@ def save(book: epub.EpubBook, path: str | Path) -> None:
         elif type(item) is epub.EpubHtml:
             item.__class__ = _RawHtml
     epub.write_epub(str(path), book)
+    if str(getattr(book, "version", None) or "").startswith("2"):
+        _as_epub2(Path(path))
+
+
+def _as_epub2(path: Path) -> None:
+    # ebooklib always writes a 3.0 package; an EPUB 2 book's content only
+    # validates against 2.0, so its package goes back to 2.0 as well
+    tmp = path.with_suffix(".tmp")
+    with zipfile.ZipFile(path) as src, zipfile.ZipFile(tmp, "w") as out:
+        for info in src.infolist():
+            data = src.read(info.filename)
+            if info.filename.endswith(".opf"):
+                opf = data.decode("utf-8")
+                opf = re.sub(r'(<package\b[^>]*?)\bversion="3\.0"', r'\1version="2.0"', opf, count=1)
+                opf = re.sub(r'(<package\b[^>]*?)\s+prefix="[^"]*"', r"\1", opf, count=1)
+                opf = re.sub(r"\s*<meta\s+property=\"[^\"]*\"[^>]*>[^<]*</meta>", "", opf)
+                opf = re.sub(r'(<item\b[^>]*?)\s+properties="[^"]*"', r"\1", opf)
+                data = opf.encode("utf-8")
+            stored = info.filename == "mimetype"
+            out.writestr(info, data, compress_type=zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
+    tmp.replace(path)
