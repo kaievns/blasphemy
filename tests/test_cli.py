@@ -269,4 +269,6 @@ def test_polish_prompt_keeps_readability_and_quotes_only_the_author():
     assert "under 30 words" in prompt and "Never add a flourish of your own" in prompt
     assert "Reasons are not repeats" in prompt
     assert "When cutting a repeat would cost any reasoning, keep the repeat" in prompt
+    assert "Takeaways are not repeats either" in prompt
+    assert "Every back-reference must still point at something" in prompt
     assert "# Banned words" in prompt

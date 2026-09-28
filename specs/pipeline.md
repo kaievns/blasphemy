@@ -198,10 +198,12 @@ when the second pass's first revision fails its guards):
    the original and the body and returns the whole chapter revised for two
    things only: claims stated twice across levels are cut or turned into a
    bridge that picks up the open question, rewording the neighbouring
-   sentence so no gap shows, but reasons are never cut as repeats (the
-   opening keeps every reason, a section that restates one goes a level
-   deeper instead, and a repeat stays when cutting it would cost reasoning);
-   and texture the body flattened comes back in
+   sentence so no gap shows, but reasons and takeaways are never cut as
+   repeats (the opening keeps every reason, a section that restates one goes
+   a level deeper instead, a section keeps the principle it lands on, and a
+   repeat stays when cutting it would cost reasoning), and no back-reference
+   ("again", "this framing") is left pointing at a cut; and texture the body
+   flattened comes back in
    the author's own words (narration like "the author's advice is…" back
    into the author's voice, dropped quips and asides restored, rewriting
    leaks removed), with the body's short-sentence, no-dash-chain style
@@ -210,9 +212,9 @@ when the second pass's first revision fails its guards):
    no banned word, and stays within 80–110% of the body's length; one
    retry, then the body is kept. The outcome is in `NNN.polish.json`; a
    failed call keeps the body. `--no-polish` skips the pass. Measured in
-   `prompt.md` (iteration log, 2026-09-28, v2): restatements −35%, texture
-   +35%, gaps −42%, flow +16%; reasoning at the top, readability and
-   fidelity unchanged.
+   `prompt.md` (iteration log, 2026-09-28, v2 and v3): a blind reader panel
+   put the pass above the unrevised draft in 66 of 90 judgments and above
+   the original chapter in 72; fidelity within judge noise of the draft.
 3. **Opening check** (`prompts/check.md`, `check.py`): the chapter-level
    opening and the first two sections, the part a reader may stop at, are
    checked

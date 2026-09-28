@@ -48,6 +48,25 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-28: second pass v3 = v2 + "takeaways are not repeats" (a
+  sentence stating a principle or conclusion the author emphasizes stays
+  in the section that argues it) + "every back-reference must still point
+  at something the reader has read", from the panel's learn/explain split
+  (entry below). Prompt examples are generic, none from the test
+  chapters. Panel round 2, same design with v3 in Fable's place (original
+  / `xhigh` / v2 / v3), 90 judgments: first choice 17 / 24 / 12 / 37; v3
+  above `xhigh` in 66 (p < 0.0001), above v2 in 68 (p < 0.0001), above the
+  original in 72. By lens, v3 above `xhigh`: reader 15 of 18, learn 8,
+  explain 11, author 18, plain 14; v3 above v2: 10, 16, 14, 15, 13. Learn
+  still leans `xhigh` (first 10 vs 7, v3 better mean rank 1.67 vs 1.78);
+  SRE ch9 improved (v3 above `xhigh` 5 of 15, v2 2). The original's
+  author-lens firsts rose from 8 to 15 between rounds with no change to
+  it: judge variance, so only within-round comparisons count. Top-layer
+  audit: reasoning losses 3 (v2 4), opening losses 0, author reasons
+  restored 12 (v2 4). Fidelity, `xhigh` / v2 / v3: claims kept 39.67 /
+  39.67 / 39.50, hedges dropped 0.17 / 0.00 / 0.22, top-layer errors 1.99
+  / 1.72 / 2.22 per 1k, all within judge noise. v3 replaced v2 in
+  `polish.md`.
 - 2026-09-28: reader panel, four unlabeled versions side by side with no
   reference text: the original chapter, Fable, Opus `xhigh`, and `xhigh`
   + second pass v2; 18 chapter-draws × 5 judges with different lenses and
@@ -80,7 +99,7 @@ the repo.
   1.81 / 3.83, texture 3.11 / 4.31 / 4.19, readability 3.89 / 4.00 / 3.97.
   Fidelity: claims kept 39.67 in all three; top-layer errors 1.99 / 1.81 /
   1.72 per 1k. v2 replaced v1 in
-  `polish.md`. Blind four-way with Fable (36 judgments, labels rotated):
+  `polish.md`; v3 replaced v2 the same day (entry above). Blind four-way with Fable (36 judgments, labels rotated):
   v2 ranked first in 26, above Fable and the draft in 36 of 36, above v1
   in 26 (p = 0.011). Per judgment, Fable / draft / v1 / v2: reasoning at
   the top 4.00 / 4.53 / 4.31 / 4.50, flow 3.47 / 3.61 / 3.61 / 4.03, gaps

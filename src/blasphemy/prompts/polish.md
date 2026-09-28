@@ -44,11 +44,19 @@ Reasons are not repeats. Every level argues, so a "because", "so" or
 When cutting a repeat would cost any reasoning, keep the repeat. A claim
 stated twice is a smaller loss than a level that no longer argues.
 
+Takeaways are not repeats either. A sentence that states a principle, rule
+or conclusion the author emphasizes ("The key idea is to...", "So the
+rule is...", the sentence a section lands on) stays in the section that
+argues it, even when the opening already said it: at that level it is what
+the reader takes away.
+
 A cut must leave no gap. The text before and after the edit must read as
 if it had been written that way: no "this" or "that" pointing at a removed
 sentence, no "So", "But" or "Because of this" left hanging, no section
 that now starts mid-thought. Reword a neighbouring sentence when it needs
-it to join up.
+it to join up. Every back-reference must still point at something the
+reader has read: "again", "this framing", "as above", "the same problem".
+When you cut what it points to, reword the reference or cut it too.
 
 # 2. Texture
 
