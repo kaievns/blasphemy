@@ -820,3 +820,81 @@ def restore_section_leads(html: str, original_html: str) -> str:
             first["class"] = lead.split()
             changed = True
     return str(soup) if changed else html
+
+
+
+ANNOTATION_SKIP = ["pre", "code", "a", "script", "style"]
+WORD = re.compile(r"[\w'’-]+")
+
+
+def _annotation_key(span) -> tuple[str, str] | None:
+    """(word before, digit) for a code annotation marker in prose."""
+    block = span.find_parent(["p", "li", "dd", "td", "th", "figcaption"])
+    digit = span.get_text(strip=True)
+    if block is None or not digit.isdigit():
+        return None
+    before = []
+    for node in block.descendants:
+        if node is span:
+            break
+        if isinstance(node, NavigableString):
+            before.append(str(node))
+    words = WORD.findall("".join(before))
+    return (words[-1].casefold(), digit) if words else None
+
+
+ANNOTATION_WORDS = ("marked", "labeled", "labelled")
+
+
+def _annotation_site(text, word: str, digit: str) -> tuple[int, int] | None:
+    """Where `digit` follows `word` in this text node (a closing bracket or
+    quote may sit between them), directly or right after the inline element
+    (`code`) that ends with the word; else after "marked" or "labeled"."""
+    after = rf"{digit}(?!\w|[.,]\d)"
+    close = r"[)\]’”\"']*\s+"
+    for words in ((word,), ANNOTATION_WORDS):
+        alternatives = "|".join(re.escape(w) for w in words)
+        found = re.search(rf"(?:^|[^\w'’-])(?:{alternatives})({close}){after}", str(text), re.I)
+        if found:
+            return found.end(1), found.end()
+        previous = text.previous_sibling
+        if previous is None or isinstance(previous, NavigableString):
+            continue
+        tail = WORD.findall(previous.get_text())
+        found = re.match(rf"({close}){after}", str(text))
+        if tail and tail[-1].casefold() in words and found:
+            return found.end(1), found.end()
+    return None
+
+
+def restore_code_annotations(html: str, original_html: str) -> str:
+    """Put No Starch's code annotation markers back into the prose. A font
+    draws them as circled digits (❶) from a plain digit in a span; the
+    markdown round trip keeps only the digit, which then reads as a number
+    after the word it followed ("the kernel image file 3")."""
+    original = BeautifulSoup(original_html, "html.parser")
+    markers = []
+    for span in original.find_all("span", class_="CodeAnnotation"):
+        key = _annotation_key(span) if span.find_parent(ANNOTATION_SKIP) is None else None
+        if key:
+            markers.append((key, str(span)))
+    if not markers:
+        return html
+    soup = BeautifulSoup(html, "html.parser")
+    changed = False
+    for (word, digit), markup in markers:
+        for text in soup.find_all(string=True):
+            if text.find_parent(ANNOTATION_SKIP) or text.find_parent("span", class_="CodeAnnotation"):
+                continue
+            site = _annotation_site(text, word, digit)
+            if site is None:
+                continue
+            value = str(text)
+            head = NavigableString(value[:site[0]])
+            text.replace_with(head)
+            marker = BeautifulSoup(markup, "html.parser").span
+            head.insert_after(marker)
+            marker.insert_after(NavigableString(value[site[1]:]))
+            changed = True
+            break
+    return str(soup) if changed else html

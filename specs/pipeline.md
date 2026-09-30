@@ -174,7 +174,16 @@ back lightly normalised) (`restore_wrappers`); links get their class back by
 target (`a.footnote`, `a.xref`, `a.ulink`, `a.indexterm`;
 `restore_link_classes`); and when the source puts one class on most
 paragraphs right after a heading (No Starch `BodyFirst`: no indent), the
-first paragraph under each rewritten heading gets it (`restore_section_leads`). The chapter
+first paragraph under each rewritten heading gets it (`restore_section_leads`).
+No Starch's code annotation markers in prose (`span.CodeAnnotation`, a
+digit its font draws as ❶) reach the model as bare digits, and a bare "1"
+after "the kernel image file" reads as a number; `restore_code_annotations`
+wraps the digit again where it still follows the word it followed in the
+source (a closing bracket may sit between), or follows "marked"/"labeled".
+Rewordings like "the assignment at 1" stay bare, because "at 1" is also
+ordinary prose: on the full conversions 32 of HLW's 45 and 57 of Rust's 82
+come back. KeyCaps (CSS uppercase on "ctrl", "enter") is not restored: the
+words are ordinary English outside key names. The chapter
 title detector skips headings inside callouts, or a chapter without a
 styled title would take a note's "Note" heading as the title.
 

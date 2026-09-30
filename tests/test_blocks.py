@@ -1,3 +1,4 @@
+import re
 from blasphemy import blocks, convert
 
 MATHML = "<p>Energy: <math><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math></p>"
@@ -689,3 +690,40 @@ def test_one_paragraph_of_a_longer_sidebar_stays_prose():
     )
     rewritten = "<p>mkfs.ext4 is just a symbolic link to mke2fs, so remember it when a system lacks mkfs.</p>"
     assert blocks.restyle_notes(rewritten, sidebar) == rewritten
+
+
+ANNOTATED = (
+    '<p>The GRUB root is set to a default value for this configuration '
+    '<span class="CodeAnnotation" aria-label="annotation1">1</span>. The first argument '
+    '(<code>/boot/vmlinuz</code>) <span class="CodeAnnotation" aria-label="annotation3">3</span> '
+    "is the kernel image.</p>"
+    '<pre>set root=x <span class="CodeAnnotation" aria-label="annotation1">1</span></pre>'
+)
+
+
+def test_code_annotations_come_back_after_the_word_they_followed():
+    rewritten = (
+        "<p>GRUB first sets the root to a default for this configuration 1. Then "
+        "<code>/boot/vmlinuz</code> 3 names the kernel image, which is 1.5 MB.</p>"
+    )
+    out = blocks.restore_code_annotations(rewritten, ANNOTATED)
+    assert re.search(r'configuration <span [^>]*class="CodeAnnotation"[^>]*>1</span>\.', out)
+    assert re.search(r'</code> <span [^>]*class="CodeAnnotation"[^>]*>3</span> names', out)
+    assert "1.5 MB" in out
+    assert blocks.restore_code_annotations(out, ANNOTATED) == out
+
+
+def test_code_annotations_leave_numbers_and_code_alone():
+    rewritten = "<p>This configuration 12 differs.</p><pre>configuration 1</pre><p>Section 1.</p>"
+    assert blocks.restore_code_annotations(rewritten, ANNOTATED) == rewritten
+
+
+def test_code_annotations_after_a_bracket_or_a_marked_reference():
+    original = (
+        '<p>The first device (<code>/dev/sda</code>) <span class="CodeAnnotation">1</span> uses MBR, '
+        'and the mode <span class="CodeAnnotation">2</span> holds permissions.</p>'
+    )
+    rewritten = "<p>The first device (<code>/dev/sda</code>) 1 uses MBR. The field marked 2 is the mode.</p>"
+    out = blocks.restore_code_annotations(rewritten, original)
+    assert re.search(r'\) <span class="CodeAnnotation">1</span> uses', out)
+    assert re.search(r'marked <span class="CodeAnnotation">2</span> is', out)
