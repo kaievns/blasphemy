@@ -11,10 +11,73 @@ from .blocks import is_callout
 
 SECTION_HEADINGS = ["h1", "h2", "h3", "h4"]
 SLUG = re.compile(r"[^a-z0-9]+")
+MD_HEADING = re.compile(r"^(#{1,6})[ \t]+(.*)$")
+LEADING_TOKENS = re.compile(r"^((?:⟦[^⟦⟧]*⟧\s*)*)(.*)$", re.S)
+ANCHOR_ID = re.compile(r"⟦ANCHOR:([^⟦⟧]+)⟧")
+SECTION_NUMBER = re.compile(r"^((?:\d+|[A-Z])(?:\.\d+)+)(?=\s|[A-Za-z]|$)")
+PAGE_ANCHOR = re.compile(r"^page", re.I)
 
 
 def _in_callout(node) -> bool:
     return any(is_callout(p) for p in node.find_parents(["aside", "div", "section"]))
+
+
+def _heading_anchors(md: str) -> list[tuple[int, list[str]]]:
+    """(line index, section anchor ids) for each markdown heading outside code
+    fences; its anchors are the ones in the heading line and on the anchor-only
+    lines directly above it, or directly below it when no heading follows
+    them. Page markers are not section anchors."""
+    lines, fence, headings = md.split("\n"), False, []
+    for i, line in enumerate(lines):
+        if line.startswith("```"):
+            fence = not fence
+        elif not fence and MD_HEADING.match(line):
+            headings.append(i)
+    anchor_only = lambda line: not ANCHOR_ID.sub("", line).strip()
+    heading_lines = set(headings)
+    found = []
+    for i in headings:
+        ids = ANCHOR_ID.findall(lines[i])
+        j = i - 1
+        while j >= 0 and anchor_only(lines[j]) and j not in heading_lines:
+            ids = ANCHOR_ID.findall(lines[j]) + ids
+            j -= 1
+        k = i + 1
+        while k < len(lines) and anchor_only(lines[k]) and k not in heading_lines:
+            k += 1
+        if k >= len(lines) or k not in heading_lines:
+            ids += [a for line in lines[i + 1:k] for a in ANCHOR_ID.findall(line)]
+        found.append((i, [a for a in ids if not PAGE_ANCHOR.match(a)]))
+    return found
+
+
+def restore_section_numbers(source_md: str, md: str) -> str:
+    """Put the source's section numbers back on the rewritten headings that
+    carry the numbered section's anchor, so "see Section 4.2.8" still leads
+    somewhere; a heading holding several numbered sections gets them all."""
+    source_lines = source_md.split("\n")
+    number = {}
+    for i, ids in _heading_anchors(source_md):
+        text = LEADING_TOKENS.match(MD_HEADING.match(source_lines[i]).group(2)).group(2)
+        found = SECTION_NUMBER.match(text.strip())
+        if found:
+            for anchor in ids:
+                number.setdefault(anchor, found.group(1))
+    if not number:
+        return md
+    lines = md.split("\n")
+    for i, ids in _heading_anchors(md):
+        numbers = list(dict.fromkeys(number[a] for a in ids if a in number))
+        numbers = sorted(
+            (n for n in numbers if not any(m.startswith(n + ".") for m in numbers)),
+            key=lambda n: [int(p) if p.isdigit() else ord(p) for p in n.split(".")],
+        )
+        hashes, rest = MD_HEADING.match(lines[i]).groups()
+        tokens, text = LEADING_TOKENS.match(rest).groups()
+        if not numbers or SECTION_NUMBER.match(text.strip()):
+            continue
+        lines[i] = f"{hashes} {tokens}{', '.join(numbers)} {text.strip()}"
+    return "\n".join(lines)
 
 
 def number_headings(html: str) -> tuple[str, list[tuple[int, str, str]]]:

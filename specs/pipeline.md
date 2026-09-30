@@ -156,7 +156,14 @@ many following blocks as the original callout held: the note has no end
 marker in markdown, and taking every paragraph swallowed main text (and a
 shell that kept its own body showed the original listing twice); the
 shell's empty anchors stay, since other chapters link to them (Stats'
-`pr03 → ch02#tips`). A dissolved note is left alone.
+`pr03 → ch02#tips`). Two more kept forms are boxed the same way: a lone
+label line (`Tips`) followed by its body, and plain paragraphs that are
+still the whole note near word for word (difflib ratio ≥ 0.7,
+`NOTE_LIKENESS`; a paragraph that is one part of a longer note or titled
+sidebar stays prose, since boxing it alone put a stray "What Is mkfs?" box
+around main text). On the 2026-09-29 full conversions this took HLW from
+36 to 114 boxed callouts of 203 and Rust from 1 to 49 of 126; the rest are
+folded into other prose or the asides. A dissolved note is left alone.
 
 Other publisher styling the markdown round trip drops comes back after
 restoring: a block the publisher wrapped singly (DocBook `div.footnote > p`,
@@ -361,6 +368,16 @@ and deferred; revisit if back-reference fidelity is lacking in practice.
 
 ## Navigation
 
+Rewritten headings get the source's section numbers back
+(`toc.restore_section_numbers`, before markdown becomes HTML): a heading
+carrying a numbered section's anchor — in the heading line, on the
+anchor-only lines above it, or directly below it when no heading follows —
+is prefixed with that number; several sections merged under one heading get
+all their numbers, a parent dropped for its child (2.2 + 2.2.1 → 2.2.1).
+The body pass drops them (HLW's full conversion kept 75 of 458), yet the
+book cites sections by number over 160 times; restoring brings back 418.
+Page markers are not section anchors.
+
 The source TOC describes the author's sections, which a restructured
 chapter no longer has. After all chapters are assembled, `toc.number_headings`
 gives each rewritten chapter's section headings an id (depth 1–2 below the
@@ -421,9 +438,10 @@ leads, all since restored. Warnings that remain: HLW and Rust lose NCX page
 targets and third-level entries (392 of 920, 242 of 449) because ebooklib
 regenerates the NCX from its own TOC model, harmless while their nav
 documents are untouched; and callouts the rewrite dissolved into its prose
-or asides (7 of HLW ch9's 22 notes, Rust ch2's 8 notes, both No Starch
-boxes, one Stats sidebar), which is the prompt's choice, not reconstruction
-damage.
+or asides (89 of HLW's 203, 77 of Rust's 126 on the full conversions),
+which is the prompt's choice. Before the kept-paragraph re-boxing above the
+same warning also hid 78 HLW and 48 Rust notes the rewrite had kept whole,
+so it was partly reconstruction damage after all.
 
 ## Output identity & styling
 
@@ -442,8 +460,10 @@ damage.
 ## Known limitations (v1)
 
 - A referenced anchor the model drops falls back to the top of its chapter.
-  Cross-references by section number point at numbered headings the
-  restructure removes (37–38 dangling in HLW).
+  Cross-references by section number ("see Section 4.2.8") can only land on
+  a section the rewrite kept as a heading: `toc.restore_section_numbers`
+  numbers those, and on HLW's full conversion 40 of 458 numbered sections
+  were dissolved into prose (their anchors still resolve).
 - Chapters are sent whole. HLW ch4 (17,286 words) came back cut mid-token;
   an output cap is the suspected cause, not confirmed. The body check now
   fails such a chapter instead of shipping it, but the chapter still needs

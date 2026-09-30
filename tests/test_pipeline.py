@@ -1,7 +1,11 @@
 import json
 import re
 
+from ebooklib import epub as eb
+
 from blasphemy import epub, pipeline
+
+from conftest import LONG_PARAGRAPH
 
 
 def optimise(sample_epub, tmp_path, rewrite, **kwargs):
@@ -417,3 +421,31 @@ def test_check_note_sums_passes_and_reports_failures(tmp_path):
     assert pipeline.check_note(record) == "opening check failed: quota"
     record.write_text(json.dumps({"applied": [1], "rejected": []}))
     assert pipeline.check_note(record) == "opening check: 1 fixed"
+
+
+def test_rewritten_heading_gets_its_source_section_number(tmp_path):
+    book = eb.EpubBook()
+    book.set_identifier("num-id")
+    book.set_title("Numbered")
+    book.set_language("en")
+    ch = eb.EpubHtml(title="Disks", file_name="c04.xhtml", uid="c04")
+    ch.set_content(
+        f'<html><body><h1>4 Disks</h1><h2 id="s41">4.1 Partitioning Disk Devices</h2>'
+        f'<p>{LONG_PARAGRAPH}</p><p><a href="#s41">see 4.1</a></p></body></html>'.encode()
+    )
+    book.add_item(ch)
+    book.toc = (ch,)
+    book.spine = [ch]
+    book.add_item(eb.EpubNcx())
+    book.add_item(eb.EpubNav())
+    source = tmp_path / "numbered.epub"
+    epub.save(book, source)
+
+    def rewrite(md, chapter):
+        title = md.strip().split("\n")[0]
+        return f"{title}\n\n⟦ANCHOR:s41⟧\n\n## Partition Tables: Plain Data\n\n" + " ".join(["word"] * 150)
+
+    out = tmp_path / "out.epub"
+    pipeline.optimise(source, out, rewrite, tmp_path / "work")
+    html = next(c for c in epub.chapters(epub.load(out)) if c.item_id == "c04").html
+    assert "4.1 Partition Tables: Plain Data" in html

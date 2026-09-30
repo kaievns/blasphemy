@@ -251,7 +251,8 @@ def optimise(
                         output_file.replace(chapter_file(workdir, chapter.index, "stale"))
             if output_md is not None:
                 html, missing = blocks.restore(
-                    convert.markdown_to_html(output_md), protected
+                    convert.markdown_to_html(toc.restore_section_numbers(source_md, output_md)),
+                    protected,
                 )
                 if missing:
                     if not rebuild:

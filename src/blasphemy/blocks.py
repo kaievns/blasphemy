@@ -21,6 +21,8 @@ CALLOUT_LABELS = re.compile(r"^(note|tip|warning|caution|important)s?$", re.I)
 CALLOUT_BODY = ["p", "ul", "ol", "dl", "div", "blockquote", "pre", "table"]
 # wrappers an image's styling can hang off
 IMAGE_WRAPPERS = ("figure", "div", "p", "span", "a")
+# a paragraph at least this like a note's text (difflib ratio) is the note, kept
+NOTE_LIKENESS = 0.7
 # DocBook's <figure>: image, caption and anchor in one styled div
 FIGURE_CLASSES = re.compile(r"^(informal)?figure$", re.I)
 PLAIN_IMG_ATTRS = {"src", "alt"}
@@ -340,20 +342,78 @@ def _dress_labelled_quote(quote, shells: dict[str, str]) -> bool:
     return _dress(placeholder, shell, body)
 
 
+def _dress_bare_label(para, shells: dict[str, str]) -> bool:
+    """A note the rewrite kept as a lone `Tips` line followed by its body."""
+    shell = shells.get(" ".join(para.get_text(" ", strip=True).rstrip(":").split()).casefold())
+    return shell is not None and _dress(para, shell)
+
+
+def _in_callout(node) -> bool:
+    return any(is_callout(p) for p in node.find_parents(["aside", "div", "section"]))
+
+
+def _callout_paragraphs(node) -> list[str]:
+    clone = BeautifulSoup(str(node), "html.parser").find(True)
+    label = _label_block(clone)
+    if label is not None:
+        label.decompose()
+    return [t for t in (_norm_text(b) for b in clone.find_all(CALLOUT_BODY)) if t]
+
+
+def _likeness(a: str, b: str) -> float:
+    words_a, words_b = set(a.split()), set(b.split())
+    if not words_a or not words_b or len(words_a & words_b) / len(words_a | words_b) < 0.4:
+        return 0.0
+    return SequenceMatcher(None, a, b, autojunk=False).ratio()
+
+
+def _rebox_kept_notes(soup, callouts: list) -> bool:
+    """Box a note the rewrite kept whole, near word for word, as plain paragraphs."""
+    boxed = [_norm_text(n) for n in soup.find_all(["aside", "div", "section"]) if is_callout(n)]
+    free = lambda p: not _in_callout(p) and p.find_parent(["li", "blockquote", "table", "figure"]) is None
+    changed = False
+    for node in callouts:
+        parts = _callout_paragraphs(node)
+        whole = " ".join(parts)
+        if not parts or any(_likeness(whole, text) >= NOTE_LIKENESS for text in boxed):
+            continue
+        scored = [(max(_likeness(part, _norm_text(p)) for part in parts), p) for p in soup.find_all("p") if free(p)]
+        score, first = max(scored, key=lambda pair: pair[0], default=(0.0, None))
+        if score < NOTE_LIKENESS:
+            continue
+        body, sibling = [first], first.find_next_sibling()
+        while len(body) < len(parts) and sibling is not None and sibling.name == "p" and free(sibling) and max(
+            _likeness(part, _norm_text(sibling)) for part in parts
+        ) >= NOTE_LIKENESS:
+            body.append(sibling)
+            sibling = sibling.find_next_sibling()
+        if _likeness(whole, " ".join(_norm_text(p) for p in body)) < NOTE_LIKENESS:
+            continue  # part of a longer note or sidebar; the rest went elsewhere
+        placeholder = BeautifulSoup("<h3></h3>", "html.parser").h3
+        first.insert_before(placeholder)
+        if _dress(placeholder, str(node), body):
+            boxed.append(whole)
+            changed = True
+        else:
+            placeholder.decompose()
+    return changed
+
+
 def restyle_notes(html: str, original_html: str) -> str:
-    """Re-box notes the model chose to keep as `## Note` + paragraphs.
+    """Re-box the notes the rewrite kept.
 
     Notes are chapter content: the rewrite is free to dissolve them into the
-    prose, gather them into an asides section, or keep them. This only
-    touches the last case, where the markdown round trip has already turned
-    the publisher's boxed callout into a bare heading and paragraphs — the
-    original callout of the same label is reused as the shell, its body
-    swapped for the rewritten paragraphs, so label, rules and classes return
-    while the model's text stays.
+    prose, gather them into an asides section, or keep them. This touches only
+    the kept ones: a `## Note` heading or a `> **Note:**` quote, a lone label
+    line, or a paragraph that is still the note near word for word. The
+    original callout is reused as the shell, its body swapped for the
+    rewritten paragraphs, so label, rules and classes return while the
+    model's text stays.
     """
-    shells = {}
+    shells, callouts = {}, []
     for node in BeautifulSoup(original_html, "html.parser").find_all(["aside", "div", "section"]):
-        if is_callout(node) and not node.find_parent(["aside"]):
+        if is_callout(node) and not node.find_parent(["aside"]) and not _in_callout(node):
+            callouts.append(node)
             label = _callout_label(node).casefold()
             if label:
                 shells.setdefault(label, str(node))
@@ -371,6 +431,10 @@ def restyle_notes(html: str, original_html: str) -> str:
         if parent is not None and is_callout(parent):
             continue  # already boxed
         changed = _dress(heading, shell) or changed
+    for para in soup.find_all("p"):
+        if para.parent is not None and not _in_callout(para):
+            changed = _dress_bare_label(para, shells) or changed
+    changed = _rebox_kept_notes(soup, callouts) or changed
     return str(soup) if changed else html
 
 

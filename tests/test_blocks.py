@@ -633,3 +633,59 @@ def test_section_lead_class_follows_the_publishers_convention():
     assert out == '<h2>A</h2><p class="BodyFirst">new</p><p>more</p><h3>C</h3><p class="BodyFirst">deep</p>'
     mixed = '<h2>A</h2><p class="BodyFirst">x</p><h2>B</h2><p>z</p><h2>C</h2><p>w</p>'
     assert blocks.restore_section_leads("<h2>A</h2><p>new</p>", mixed) == "<h2>A</h2><p>new</p>"
+
+
+ROOT_NOTE = (
+    '<aside epub:type="sidebar"><section class="note"><h2>Note</h2>'
+    "<p>Operating as root can be dangerous. It can be difficult to identify and correct "
+    "mistakes because the system will let you do anything, even if it is harmful.</p></section></aside>"
+)
+
+
+def test_note_kept_near_word_for_word_as_a_paragraph_is_reboxed():
+    rewritten = (
+        "<p>Root may alter any process.</p>"
+        "<p>Operating as root can be dangerous. Mistakes can be difficult to identify and correct, "
+        "because the system will let you do anything, even if it is harmful.</p>"
+        "<p>Groups are sets of users.</p>"
+    )
+    out = blocks.restyle_notes(rewritten, ROOT_NOTE)
+    assert '<section class="note"><h2>Note</h2><p>Operating as root can be dangerous. Mistakes' in out
+    assert out.startswith("<p>Root may alter any process.</p>")
+    assert out.endswith("<p>Groups are sets of users.</p>")
+    assert blocks.restyle_notes(out, ROOT_NOTE) == out  # never boxes twice
+
+
+def test_note_folded_into_other_prose_stays_prose():
+    rewritten = (
+        "<p>Root is the superuser, and the kernel lets it terminate any process, read any file "
+        "and change any setting; that power is why designers keep root access rare.</p>"
+    )
+    assert blocks.restyle_notes(rewritten, ROOT_NOTE) == rewritten
+
+
+def test_note_kept_in_a_list_item_is_not_reboxed():
+    rewritten = (
+        "<ul><li><p>Operating as root can be dangerous. It can be difficult to identify and correct "
+        "mistakes because the system will let you do anything, even if it is harmful.</p></li></ul>"
+    )
+    assert blocks.restyle_notes(rewritten, ROOT_NOTE) == rewritten
+
+
+def test_note_kept_behind_a_bare_label_line_is_reboxed():
+    sidebar = '<div class="sidebar"><p class="title">Tips</p><ul><li>Old tip.</li></ul></div>'
+    rewritten = "<p>Regression fits it.</p><p>Tips</p><ul><li>Don't split variables.</li></ul>"
+    out = blocks.restyle_notes(rewritten, sidebar)
+    assert '<div class="sidebar"><p class="title">Tips</p><ul><li>Don\'t split variables.</li></ul></div>' in out
+    assert out.startswith("<p>Regression fits it.</p>")
+
+
+def test_one_paragraph_of_a_longer_sidebar_stays_prose():
+    sidebar = (
+        '<div class="box"><h2>What Is mkfs?</h2>'
+        "<p>mkfs.ext4 is just a symbolic link to mke2fs, so remember it when a system lacks mkfs.</p>"
+        "<p>The mkfs front end dispatches on the type argument and runs the matching builder program.</p>"
+        "<p>Each builder has its own options, which the front end passes along unchanged.</p></div>"
+    )
+    rewritten = "<p>mkfs.ext4 is just a symbolic link to mke2fs, so remember it when a system lacks mkfs.</p>"
+    assert blocks.restyle_notes(rewritten, sidebar) == rewritten

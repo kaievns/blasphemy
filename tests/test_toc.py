@@ -119,3 +119,74 @@ def test_toc_hrefs_resolve_by_path_not_basename():
 def test_toc_labels_drop_footnote_markers():
     _, headings = toc.number_headings('<h1>T</h1><h2>Consensus<sup><a epub:type="noteref" href="#n1">1</a></sup></h2>')
     assert headings[0][2] == "Consensus"
+
+
+NUMBERED_SOURCE = """⟦TITLE-1⟧
+
+⟦ANCHOR:h1-01⟧
+
+## 4.1 Partitioning Disk Devices
+
+Text.
+
+⟦ANCHOR:h2-01⟧
+
+### 4.1.1Viewing a Partition Table
+
+```
+## 9.9 not a heading
+```
+
+## ⟦ANCHOR:Page_72⟧ 4.2 Filesystems
+
+⟦ANCHOR:h2-02⟧
+
+### 4.2.1 Filesystem Types
+
+## NOTE
+
+A note.
+"""
+
+
+def test_restore_section_numbers_follows_the_section_anchor():
+    md = (
+        "⟦TITLE-1⟧\n\n⟦ANCHOR:h1-01⟧\n\n## Partition Tables: Plain Data\n\nx\n\n"
+        "### Reading a Table\n\n⟦ANCHOR:h2-01⟧\n\nText.\n\n## NOTE\n\nA note."
+    )
+    out = toc.restore_section_numbers(NUMBERED_SOURCE, md)
+    assert "## 4.1 Partition Tables: Plain Data" in out
+    assert "### 4.1.1 Reading a Table" in out
+    assert "## NOTE" in out
+
+
+def test_restore_section_numbers_keeps_tokens_leading_and_existing_numbers():
+    md = "## ⟦ANCHOR:Page_72⟧Filesystems\n\n⟦ANCHOR:h2-02⟧\n\n### 4.2.1 Types Linux Supports"
+    out = toc.restore_section_numbers(NUMBERED_SOURCE, md)
+    assert "### 4.2.1 Types Linux Supports" in out
+    assert "4.2.1 4.2.1" not in out
+    # a page marker is not a section anchor, so the unanchored heading stays bare
+    assert "## ⟦ANCHOR:Page_72⟧Filesystems" in out
+
+
+def test_restore_section_numbers_merges_sections_and_ignores_code():
+    md = (
+        "⟦ANCHOR:h2-02⟧\n⟦ANCHOR:h1-01⟧\n⟦ANCHOR:h2-01⟧\n\n## Tables and Types\n\n"
+        "```\n## 9.9 not a heading\n```\n\n⟦ANCHOR:h2-99⟧\n\n### Unknown"
+    )
+    out = toc.restore_section_numbers(NUMBERED_SOURCE, md)
+    assert "## 4.1.1, 4.2.1 Tables and Types" in out
+    assert "## 9.9 not a heading" in out
+    assert "### Unknown" in out
+
+
+def test_restore_section_numbers_leaves_unnumbered_books_alone():
+    source = "⟦ANCHOR:a⟧\n\n## Overview\n\nx"
+    md = "⟦ANCHOR:a⟧\n\n## What It Does\n\nx"
+    assert toc.restore_section_numbers(source, md) == md
+
+
+def test_anchor_between_headings_belongs_to_the_heading_below():
+    md = "## First\n\n⟦ANCHOR:h1-01⟧\n\n### Second\n\ntext"
+    out = toc.restore_section_numbers(NUMBERED_SOURCE, md)
+    assert "## First" in out and "### 4.1 Second" in out
