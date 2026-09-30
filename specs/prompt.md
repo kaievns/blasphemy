@@ -57,7 +57,27 @@ the repo.
   example is now a topic heading ("Where the Name *grep* Comes From"), with
   "never one about the author or the book" and "a section of the chapter's
   own is never an aside". Not re-measured: a wording fix to an example,
-  with nothing else in the prompt changed.
+  with nothing else in the prompt changed. The shipped headings were
+  renamed by the conversion audit below.
+- 2026-09-30: full-book conversion audit of the production pipeline (P,
+  second pass v3, opening check x2, Opus 5.5 xhigh) on the 65 rewritten
+  chapters of HLW, Rust and SRE (422k words of source). Per part of about
+  4,500 words, one auditor checked the rewrite against the source and one
+  the source against the rewrite (243 auditors); one skeptic per chapter
+  merged and tried to refute each finding; one patcher applied the rest to
+  a copy, checked mechanically (tokens, code, body guard, banned words,
+  every changed hunk traced to a patch) before it went into the cache.
+  125 confirmed, 76 refuted: 0 high, 1 medium (Rust ch10 said
+  ThreadSanitizer explores interleavings; only Loom does), 124 low, about
+  0.3 per 1,000 words. Overstated 46, structure 35 (garbled or subjectless
+  sentences, a closing section filed under asides), meta 14 (every meta
+  heading renamed), invented 7, xref 7, wrong 7, merged 6, omitted 3. 11
+  patches were reverted as design conflicts: the auditors' brief lacked the
+  rules that the opening names each section by heading and that asides go
+  last, so they removed an opening pointer, cut an opening repeat that
+  carried its reason, and moved four asides (password history, emulators,
+  a deprecation note, the *canary* etymology) back into the text. Findings
+  in `experiments/conversion-2026-09-30/confirmed.json`.
 - 2026-09-28: body prompt P3 = P + "reasoning outranks this rule" (keep a
   restatement when removing it would cost a level its reason or takeaway)
   + carrying a claim up to the opening never strengthens it (its

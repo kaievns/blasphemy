@@ -222,9 +222,10 @@ revision fails its guards):
    subsections; asides last. Expert register, the author's texture and
    reasoning at every level.
    A 55–70% length contract with a comprehension override is appended to
-   the user message (`cli.py`) and never measured. Framing matters more than
+   the user message (`cli.py`) and never enforced. Framing matters more than
    numbers: a comprehension-first framing ignores numeric targets entirely
-   (H/I experiments).
+   (H/I experiments), and the 2026-09-29 full conversions came out at 90%
+   (HLW), 87% (Rust) and 92% (SRE) of the source after the second pass.
 2. **Second pass** (`prompts/polish.md`, `polish.py`): a fresh call gets
    the original and the body and returns the whole chapter revised for two
    things only: claims stated twice across levels are cut or turned into a
