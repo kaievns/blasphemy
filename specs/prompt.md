@@ -48,6 +48,16 @@ Entries on the same day are not in time order. Sample and prompt files
 named below lived in `experiments/`, which is gitignored, so they are not in
 the repo.
 
+- 2026-09-30: body prompt asides example. P's example heading "Two things
+  the author notes in passing" was copied near verbatim into 8 of the 65
+  chapters of the 2026-09-29 full conversions (HLW 5, Rust 3; "Three
+  Things the Author Notes in Passing", "Two Things Noted in Passing"), a
+  meta heading the second pass forbids in prose, and in HLW ch1 it
+  swallowed the author's own closing section, 1.6 Looking Forward. The
+  example is now a topic heading ("Where the Name *grep* Comes From"), with
+  "never one about the author or the book" and "a section of the chapter's
+  own is never an aside". Not re-measured: a wording fix to an example,
+  with nothing else in the prompt changed.
 - 2026-09-28: body prompt P3 = P + "reasoning outranks this rule" (keep a
   restatement when removing it would cost a level its reason or takeaway)
   + carrying a claim up to the opening never strengthens it (its

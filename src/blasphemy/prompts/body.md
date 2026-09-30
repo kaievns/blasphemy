@@ -50,9 +50,11 @@ the order that puts each section's prerequisites before it:
 Headings are real and contextual: each states that section's point in
 the chapter's own terms (never "Overview", "Reasoning", "Details").
 
-**Asides** — optional, last, headed contextually (e.g. "Two things the
-author notes in passing"): tangents, history, jokes and side facts that
-carry no weight in the argument. Omit when empty.
+**Asides** — optional, last: tangents, history, jokes and side facts that
+carry no weight in the argument, under a heading that names what they are
+about in the chapter's own terms (e.g. "Where the Name *grep* Comes
+From"), never one about the author or the book. A section of the
+chapter's own is never an aside. Omit when empty.
 
 # Each level adds, never repeats
 
