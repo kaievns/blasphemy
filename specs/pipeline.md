@@ -433,7 +433,7 @@ a problem makes the run exit 1. What it compares:
   (`div.chapter`) is kept, CSS-styled classes the source used, no fewer
   images, math, SVG or figures (protected, so a problem) or tables and code
   blocks (a warning), no ⟦token⟧ or markdown syntax left in the text, no
-  duplicate ids, no new heading-level jumps
+  duplicate ids, no new heading-level jumps (callout label headings excluded)
 
 `--verify` runs it alone against an existing output.
 

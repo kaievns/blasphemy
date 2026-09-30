@@ -9,6 +9,8 @@ from urllib.parse import unquote, urlsplit
 from bs4 import BeautifulSoup
 from lxml import etree
 
+from .blocks import is_callout
+
 XHTML = {"application/xhtml+xml", "text/html"}
 CSS_CLASS = re.compile(r"\.([A-Za-z_][\w-]*)")
 MARKDOWN = re.compile(r"(?m)^#{1,6}\s|\*\*\S[^*]*\*\*|```|\]\([^)\s]+\)|^\|\s*-{3}")
@@ -139,7 +141,12 @@ def _xml_error(data: bytes) -> str:
 
 
 def _level_jumps(soup: BeautifulSoup) -> int:
-    levels = [int(h.name[1]) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
+    """Heading-level skips in the running text; a callout's own label
+    heading (No Starch boxes a note under an h2) sits outside the outline."""
+    levels = [
+        int(h.name[1]) for h in soup.find_all(re.compile(r"^h[1-6]$"))
+        if not any(is_callout(p) for p in h.find_parents(["aside", "div", "section"]))
+    ]
     return sum(1 for a, b in zip(levels, levels[1:]) if b > a + 1)
 
 

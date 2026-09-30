@@ -94,3 +94,13 @@ def test_the_nav_document_may_change_for_rewritten_chapters(tmp_path):
     source = book(tmp_path / "a.epub", {"nav.xhtml": nav}, extra_items=item)
     renamed = book(tmp_path / "b.epub", {"nav.xhtml": nav.replace(">One<", ">One, Rewritten<")}, extra_items=item)
     assert ("warning", "untouched document changed") not in kinds(integrity.verify(source, renamed, rewritten={"ch1.xhtml"}))
+
+
+def test_heading_jumps_ignore_a_callout_label():
+    from bs4 import BeautifulSoup
+    boxed = BeautifulSoup(
+        '<h2>A</h2><h3>B</h3><aside epub:type="sidebar"><section class="note"><h2>NOTE</h2>'
+        "<p>n</p></section></aside><h4>C</h4>", "html.parser",
+    )
+    assert integrity._level_jumps(boxed) == 0
+    assert integrity._level_jumps(BeautifulSoup("<h2>A</h2><h4>C</h4>", "html.parser")) == 1
